@@ -2,98 +2,98 @@
 
 function BrRamp()
 {
-	this.requiredContext = "\tAdobe Bridge must be running.\n\tExecute against Bridge as the Target.\n";
-	
-	this.menuID = "brRampAddContextMenu";
+    this.requiredContext = "\tAdobe Bridge must be running.\n\tExecute against Bridge as the Target.\n";
+    
+    this.menuID = "brRampAddContextMenu";
 }
 
 BrRamp.prototype.run = function()
 {
 
-	var retval = true;
-	if(!this.canRun()) {
-		retval = false;	
-		return retval;
-	}
-	
-	// Load the XMP Script library
-	if( xmpLib == undefined ) 
-	{
-		if( Folder.fs == "Windows" )
-		{
-			var pathToLib = Folder.startup.fsName + "/AdobeXMPScript.dll";
-		} 
-		else 
-		{
-			var pathToLib = Folder.startup.fsName + "/AdobeXMPScript.framework";
-		}
-	
-		var libfile = new File( pathToLib );
-		var xmpLib = new ExternalObject("lib:" + pathToLib );
-	}
+    var retval = true;
+    if(!this.canRun()) {
+        retval = false; 
+        return retval;
+    }
+    
+    // Load the XMP Script library
+    if( xmpLib == undefined ) 
+    {
+        if( Folder.fs == "Windows" )
+        {
+            var pathToLib = Folder.startup.fsName + "/AdobeXMPScript.dll";
+        } 
+        else 
+        {
+            var pathToLib = Folder.startup.fsName + "/AdobeXMPScript.framework";
+        }
+    
+        var libfile = new File( pathToLib );
+        var xmpLib = new ExternalObject("lib:" + pathToLib );
+    }
 
-	// create the menu element
-	var cntCommand = new MenuElement("command", "Ramp ACR Settings...", "at the end of Thumbnail", this.menuID);
+    // create the menu element
+    var cntCommand = new MenuElement("command", "Ramp ACR Settings...", "at the end of Thumbnail", this.menuID);
 
-	// What to do when the menu item is selected
-	cntCommand.onSelect = function(m)
-	{
-		runRampMain();
-	};
+    // What to do when the menu item is selected
+    cntCommand.onSelect = function(m)
+    {
+        runRampMain();
+    };
 
-	// When to display the menu item
-	cntCommand.onDisplay = function()
-	{
-		try
-		{
-			cntCommand.enabled = true;
-			if(app.document.selections.length > 0)
-			{
-				for(var i = 0; i < app.document.selections.length; i++)
-				{
-					
-					if(app.docuument.selections[i].container)
-					{
-						cntCommand.enabled = false;
-						break;
-					}
-				}
-			}
-			else
-			{
-				cntCommand.enabled = false;
-			}
-		}
-		catch(error){ $.writeln(error); }
-	};
-	
-	return retval;
+    // When to display the menu item
+    cntCommand.onDisplay = function()
+    {
+        try
+        {
+            cntCommand.enabled = true;
+            if(app.document.selections.length > 0)
+            {
+                for(var i = 0; i < app.document.selections.length; i++)
+                {
+                    
+                    if(app.docuument.selections[i].container)
+                    {
+                        cntCommand.enabled = false;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                cntCommand.enabled = false;
+            }
+        }
+        catch(error){ $.writeln(error); }
+    };
+    
+    return retval;
 }
 
 BrRamp.prototype.canRun = function()
-{	
-	return BridgeTalk.appName == "bridge" && ! MenuElement.find(this.menuID);
+{   
+    return BridgeTalk.appName == "bridge" && ! MenuElement.find(this.menuID);
 }
 
 function runRampMain()
 {
-	var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
+    var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
             rampPanel: Panel { text: 'Ramp', \
-				propertyBox: DropDownList { }, \
-				startGroup: Group { \
-					startLabel: StaticText { text: 'Start: ' }, \
-					startText: EditText { characters: 8, text: '0' }, \
-				}, \
-				endGroup: Group{ \
-					endLabel: StaticText { text: 'End: ' }, \
-					endText: EditText { characters: 8, text: '0' }, \
-				}, \
-				additiveGroup: Group{ \
-					additiveCheckBox: Checkbox { text: 'Additive' }\
-				}, \
-				selectionLabel: StaticText { text: 'Selected Items: ' }, \
-			} \
+                propertyBox: DropDownList { }, \
+                startGroup: Group { \
+                    startLabel: StaticText { text: 'Start: ' }, \
+                    startText: EditText { characters: 8, text: '0' }, \
+                }, \
+                endGroup: Group{ \
+                    endLabel: StaticText { text: 'End: ' }, \
+                    endText: EditText { characters: 8, text: '0' }, \
+                }, \
+                additiveGroup: Group{ \
+                    additiveCheckBox: Checkbox { text: 'Additive' }\
+                }, \
+                selectionLabel: StaticText { text: 'Selected Items: ' }, \
+            } \
         }, \
         rightGroup: Group { orientation: 'column', alignChildren:'fill', \
             okButton: Button { text: 'OK' }, \
@@ -191,12 +191,12 @@ function runRampMain()
     
     okButton.onClick = function() 
     { 
-    	rampDialog.hide(); 
-    	applyRamp(
-    		propertyBox.selection.text, 
-    		Number(rampDialog.leftGroup.rampPanel.startGroup.startText.text), 
-    		Number(rampDialog.leftGroup.rampPanel.endGroup.endText.text), 
-    		rampDialog.leftGroup.rampPanel.additiveGroup.additiveCheckBox.value);
+        rampDialog.hide(); 
+        applyRamp(
+            propertyBox.selection.text, 
+            Number(rampDialog.leftGroup.rampPanel.startGroup.startText.text), 
+            Number(rampDialog.leftGroup.rampPanel.endGroup.endText.text), 
+            rampDialog.leftGroup.rampPanel.additiveGroup.additiveCheckBox.value);
     };
     cancelButton.onClick = function() { rampDialog.hide();};
     
@@ -205,35 +205,35 @@ function runRampMain()
 
 function applyRamp(property, startValue, endValue, additive)
 {
-	var count = app.document.selections.length;
-	for(var i = 0; i < count; i++)
-	{
-		var thumb = app.document.selections[i];
-		
-		if(thumb.hasMetadata)
-		{
-			//load the xmp metadata
-			var md = thumb.synchronousMetadata;
-			var xmp =  new XMPMeta(md.serialize());
-			
-			var offset = 0;
-			if(additive)
-			{
-				offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
-				$.writeln(thumb.name + " offset: " + offset);
-			}
-			var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
-			xmp.setProperty(XMPConst.NS_CAMERA_RAW, property, value);
-			
-			// Write the packet back to the selected file
-			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-	
-			// $.writeln(updatedPacket);
-			thumb.metadata = new Metadata(updatedPacket);
-		}
-		else
-			alert("Error: No Metadata found for: " + thumb.name);
-	}
+    var count = app.document.selections.length;
+    for(var i = 0; i < count; i++)
+    {
+        var thumb = app.document.selections[i];
+        
+        if(thumb.hasMetadata)
+        {
+            //load the xmp metadata
+            var md = thumb.synchronousMetadata;
+            var xmp =  new XMPMeta(md.serialize());
+            
+            var offset = 0;
+            if(additive)
+            {
+                offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
+                $.writeln(thumb.name + " offset: " + offset);
+            }
+            var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
+            xmp.setProperty(XMPConst.NS_CAMERA_RAW, property, value);
+            
+            // Write the packet back to the selected file
+            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+    
+            // $.writeln(updatedPacket);
+            thumb.metadata = new Metadata(updatedPacket);
+        }
+        else
+            alert("Error: No Metadata found for: " + thumb.name);
+    }
 }
 
 //runRampMain();

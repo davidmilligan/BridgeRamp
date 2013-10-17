@@ -64,7 +64,7 @@ BrRamp.prototype.run = function()
                 cntCommand.enabled = false;
             }
         }
-        catch(error){ $.writeln(error); }
+        catch(error){ }
     };
     
     return retval;
@@ -220,7 +220,7 @@ function applyRamp(property, startValue, endValue, additive)
             if(additive)
             {
                 offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
-                $.writeln(thumb.name + " offset: " + offset);
+                //$.writeln(thumb.name + " offset: " + offset);
             }
             var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
             xmp.setProperty(XMPConst.NS_CAMERA_RAW, property, value);

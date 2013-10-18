@@ -4,7 +4,8 @@ function BrRamp()
 {
     this.requiredContext = "\tAdobe Bridge must be running.\n\tExecute against Bridge as the Target.\n";
     
-    this.menuID = "brRampAddContextMenu";
+    this.rampMenuID = "brRampContextMenu";
+    this.deflickerMenuID = "deflickerContextMenu";
 }
 
 BrRamp.prototype.run = function()
@@ -33,16 +34,19 @@ BrRamp.prototype.run = function()
     }
 
     // create the menu element
-    var cntCommand = new MenuElement("command", "Ramp ACR Settings...", "at the end of Thumbnail", this.menuID);
+    var cntCommand = new MenuElement("command", "Ramp ACR Settings...", "at the end of Thumbnail", this.rampMenuID);
+    var dflCommand = new MenuElement("command", "Deflicker", "at the end of Thumbnail", this.deflickerMenuID);
 
-    // What to do when the menu item is selected
     cntCommand.onSelect = function(m)
     {
         runRampMain();
     };
+    dflCommand.onSelect = function(m)
+    {
+        runDeflickerMain();
+    };
 
-    // When to display the menu item
-    cntCommand.onDisplay = function()
+    var onDisplay = function()
     {
         try
         {
@@ -66,6 +70,9 @@ BrRamp.prototype.run = function()
         }
         catch(error){ }
     };
+    
+    cntCommand.onDisplay = onDisplay;
+    dflCommand.onDisplay = onDisplay;
     
     return retval;
 }
@@ -234,6 +241,116 @@ function applyRamp(property, startValue, endValue, additive)
         else
             alert("Error: No Metadata found for: " + thumb.name);
     }
+}
+
+function runDeflickerMain()
+{
+    deflicker();
+}
+
+function computeHistogram(bitmap)
+{
+    var histogram = new Array(256);
+    for(var h = 0; h < 256; h++)
+        histogram[h] = 0;
+    for(var x = 0; x < bitmap.width; x++)
+    {
+        for(var y = 0; y < bitmap.height; y++)
+        {
+            var pixel = new Color(bitmap.getPixel(x,y));
+            histogram[Math.round((pixel.red + pixel.green + pixel.blue)/3)]++;
+        }
+    }
+    return histogram;
+}
+
+function computePercentiles(histogram, total)
+{
+    var result = new Array(5);
+    result['black'] = 0;
+    result['25'] = 63;
+    result['50'] = 127;
+    result['75'] = 191;
+    result['white'] = 255;
+    var runningTotal = 0;
+    var level = 0;
+    for(level = 0; level < 256; level++)
+    {
+        runningTotal += histogram[level];
+        if(runningTotal == 0)
+            result['black'] = level;
+        if(runningTotal / total < 0.2)
+            result['25'] = level;
+        if(runningTotal / total < 0.5)
+            result['50'] = level;
+        if(runningTotal / total < 0.8)
+            result['75'] = level;
+        if(runningTotal / total >= 1.0)
+        {
+            result['white'] = level;
+            break;
+        }
+    }
+    return result;
+}
+
+function deflicker()
+{
+    initializeProgress();
+    var count = app.document.selections.length;
+    app.synchronousMode = true; 
+    
+    //get target values from the first image
+    var thumb = app.document.selections[0];
+    var bitmap = thumb.core.preview.preview;
+    var histogram = computeHistogram(bitmap);
+    target = computePercentiles(histogram, bitmap.width * bitmap.height);
+    
+    for(var i = 1; i < count; i++)
+    {
+        progress.value = 100 * i / count;
+        var thumb = app.document.selections[i];
+        var bitmap = thumb.core.preview.preview;
+        var histogram = computeHistogram(bitmap);
+        computed = computePercentiles(histogram, bitmap.width * bitmap.height);
+        
+        var thumb = app.document.selections[i];
+        var xmp = new XMPMeta();
+        if(thumb.hasMetadata)
+        {
+            //load the xmp metadata
+            var md = thumb.synchronousMetadata;
+            var xmp =  new XMPMeta(md.serialize());
+            xmp.deleteProperty(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012');
+        }
+        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['black'] + ", " + target['black'], 0, XMPConst.ARRAY_IS_ORDERED);
+        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['25'] + ", " + target['25'], 0, XMPConst.ARRAY_IS_ORDERED);
+        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['50'] + ", " + target['50'], 0, XMPConst.ARRAY_IS_ORDERED);
+        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['75'] + ", " + target['75'], 0, XMPConst.ARRAY_IS_ORDERED);
+        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['white'] + ", " + target['white'], 0, XMPConst.ARRAY_IS_ORDERED);
+        
+        // Write the packet back to the selected file
+        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+
+        // $.writeln(updatedPacket);
+        thumb.metadata = new Metadata(updatedPacket);
+    }
+    progressWindow.hide();
+}
+
+function initializeProgress()
+{
+    progressWindow = new Window("palette { text:'Deflicker Progress', \
+        statusText: StaticText { text: 'Processing Images...', preferredSize: [350,20] }, \
+        progressGroup: Group { \
+            progress: Progressbar { minvalue: 0, maxvalue: 100, value: 0, preferredSize: [300,20] }, \
+            cancelButton: Button { text: 'Cancel' } \
+        } \
+    }");
+    statusText = progressWindow.statusText;
+    progress = progressWindow.progressGroup.progress;
+    progressWindow.progressGroup.cancelButton.onClick = function() { userCanceled = true; }
+    progressWindow.show();
 }
 
 //runRampMain();

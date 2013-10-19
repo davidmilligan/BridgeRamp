@@ -248,14 +248,16 @@ function runDeflickerMain()
     deflicker();
 }
 
+var lineSkip = 2;
+
 function computeHistogram(bitmap)
 {
     var histogram = new Array(256);
     for(var h = 0; h < 256; h++)
         histogram[h] = 0;
-    for(var x = 0; x < bitmap.width; x++)
+    for(var x = 0; x < bitmap.width; x+=lineSkip)
     {
-        for(var y = 0; y < bitmap.height; y++)
+        for(var y = 0; y < bitmap.height; y+=lineSkip)
         {
             var pixel = new Color(bitmap.getPixel(x,y));
             histogram[Math.round((pixel.red + pixel.green + pixel.blue)/3)]++;
@@ -264,30 +266,27 @@ function computeHistogram(bitmap)
     return histogram;
 }
 
+var percentiles = [0, 0.3, 0.5, 0.75, 0.95, 0.99, 1.0];
+
 function computePercentiles(histogram, total)
 {
-    var result = new Array(5);
-    result['black'] = 0;
-    result['25'] = 63;
-    result['50'] = 127;
-    result['75'] = 191;
-    result['white'] = 255;
+    var result = new Array(percentiles.length);
+    result[0] = 0;
     var runningTotal = 0;
     var level = 0;
     for(level = 0; level < 256; level++)
     {
         runningTotal += histogram[level];
         if(runningTotal == 0)
-            result['black'] = level;
-        if(runningTotal / total < 0.2)
-            result['25'] = level;
-        if(runningTotal / total < 0.5)
-            result['50'] = level;
-        if(runningTotal / total < 0.8)
-            result['75'] = level;
-        if(runningTotal / total >= 1.0)
+            result[0] = level;
+        for(var p = 1; p < percentiles.length - 1; p++)
         {
-            result['white'] = level;
+            if(runningTotal / total < percentiles[p])
+                result[p] = level;
+        }
+        if(runningTotal / total >= 1.0 || level == 255)
+        {
+            result[percentiles.length - 1] = level;
             break;
         }
     }
@@ -302,19 +301,33 @@ function deflicker()
     
     //get target values from the first image
     var thumb = app.document.selections[0];
+    progress.value = 100 * 1 / (count + 1);
+    statusText.text = "Processing " + thumb.name;
     var bitmap = thumb.core.preview.preview;
     var histogram = computeHistogram(bitmap);
-    target = computePercentiles(histogram, bitmap.width * bitmap.height);
+    var targetStart = computePercentiles(histogram, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+    var targetEnd = targetStart;
     
-    for(var i = 1; i < count; i++)
+    if(count > 2)
     {
-        progress.value = 100 * i / count;
-        var thumb = app.document.selections[i];
-        var bitmap = thumb.core.preview.preview;
-        var histogram = computeHistogram(bitmap);
-        computed = computePercentiles(histogram, bitmap.width * bitmap.height);
+        //get target values from the last image
+        thumb = app.document.selections[count-1];
+        progress.value = 100 * 2 / (count + 1);
+        statusText.text = "Processing " + thumb.name;
+        bitmap = thumb.core.preview.preview;
+        histogram = computeHistogram(bitmap);
+        targetEnd = computePercentiles(histogram, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+    }
+    
+    for(var i = 1; i < count - (count > 2 ? 1 : 0); i++)
+    {
+        thumb = app.document.selections[i];
+        progress.value = 100 * (i + 2) / (count + 1);
+        statusText.text = "Processing " + thumb.name;
+        bitmap = thumb.core.preview.preview;
+        histogram = computeHistogram(bitmap);
+        computed = computePercentiles(histogram, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
         
-        var thumb = app.document.selections[i];
         var xmp = new XMPMeta();
         if(thumb.hasMetadata)
         {
@@ -323,11 +336,12 @@ function deflicker()
             var xmp =  new XMPMeta(md.serialize());
             xmp.deleteProperty(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012');
         }
-        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['black'] + ", " + target['black'], 0, XMPConst.ARRAY_IS_ORDERED);
-        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['25'] + ", " + target['25'], 0, XMPConst.ARRAY_IS_ORDERED);
-        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['50'] + ", " + target['50'], 0, XMPConst.ARRAY_IS_ORDERED);
-        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['75'] + ", " + target['75'], 0, XMPConst.ARRAY_IS_ORDERED);
-        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed['white'] + ", " + target['white'], 0, XMPConst.ARRAY_IS_ORDERED);
+        for(var j = 0; j < computed.length; j++)
+        {
+            var targetY =  (i / count) * (targetEnd[j] - targetStart[j]) + targetStart[j];
+            xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed[j] + ", " + targetY, 0, XMPConst.ARRAY_IS_ORDERED);
+            $.writeln(computed[j] + ", " + targetY);
+        }
         
         // Write the packet back to the selected file
         var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);

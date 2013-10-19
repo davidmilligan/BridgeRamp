@@ -13,6 +13,10 @@
  * GNU General Public License for more details.
  */
 
+var lineSkip = 3;
+var percentile = 0.7;
+var evCurveCoefficent = 2 / Math.log(2);
+
 function BrRamp()
 {
     this.requiredContext = "\tAdobe Bridge must be running.\n\tExecute against Bridge as the Target.\n";
@@ -48,7 +52,7 @@ BrRamp.prototype.run = function()
 
     // create the menu element
     var cntCommand = new MenuElement("command", "Ramp ACR Settings...", "at the end of Thumbnail", this.rampMenuID);
-    var dflCommand = new MenuElement("command", "Deflicker", "at the end of Thumbnail", this.deflickerMenuID);
+    var dflCommand = new MenuElement("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
 
     cntCommand.onSelect = function(m)
     {
@@ -209,18 +213,17 @@ function runRampMain()
     
     rampDialog.leftGroup.rampPanel.selectionLabel.text += app.document.selections.length;
     
-    okButton.onClick = function() 
-    { 
-        rampDialog.hide(); 
+    okButton.onClick = function() { rampDialog.close(true); };
+    cancelButton.onClick = function() { rampDialog.close(false);};
+    
+    if(rampDialog.show())
+    {
         applyRamp(
             propertyBox.selection.text, 
             Number(rampDialog.leftGroup.rampPanel.startGroup.startText.text), 
             Number(rampDialog.leftGroup.rampPanel.endGroup.endText.text), 
             rampDialog.leftGroup.rampPanel.additiveGroup.additiveCheckBox.value);
-    };
-    cancelButton.onClick = function() { rampDialog.hide();};
-    
-    rampDialog.show();
+    }
 }
 
 function applyRamp(property, startValue, endValue, additive)
@@ -229,39 +232,80 @@ function applyRamp(property, startValue, endValue, additive)
     for(var i = 0; i < count; i++)
     {
         var thumb = app.document.selections[i];
+        progress.value = 100 * i / (count + 1);
+        statusText.text = "Processing " + thumb.name;
         
+        var xmp =  new XMPMeta();
+        var offset = 0;
         if(thumb.hasMetadata)
         {
             //load the xmp metadata
             var md = thumb.synchronousMetadata;
-            var xmp =  new XMPMeta(md.serialize());
+            xmp =  new XMPMeta(md.serialize());
             
-            var offset = 0;
             if(additive)
             {
                 offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
                 //$.writeln(thumb.name + " offset: " + offset);
             }
-            var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
-            xmp.setProperty(XMPConst.NS_CAMERA_RAW, property, value);
-            
-            // Write the packet back to the selected file
-            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-    
-            // $.writeln(updatedPacket);
-            thumb.metadata = new Metadata(updatedPacket);
         }
-        else
-            alert("Error: No Metadata found for: " + thumb.name);
+        var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
+        xmp.setProperty(XMPConst.NS_CAMERA_RAW, property, value);
+        
+        // Write the packet back to the selected file
+        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+
+        // $.writeln(updatedPacket);
+        thumb.metadata = new Metadata(updatedPacket);
     }
 }
 
+
 function runDeflickerMain()
 {
-    deflicker();
+    var deflickerDialog = new Window("dialog { orientation: 'row', text: 'Deflicker', alignChildren:'top', \
+        leftGroup: Group { orientation: 'column', alignChildren:'fill', \
+            deflickerPanel: Panel { text: 'Deflicker', \
+                percentileGroup: Group{ \
+                    percentileLabel: StaticText { text: 'Percentile: ' }, \
+                    percentileText: EditText { characters: 8, text: '0.5' }, \
+                }, \
+                lineSkipGroup: Group { \
+                    lineSkipLabel: StaticText { text: 'Line Skip: ' }, \
+                    lineSkipText: EditText { characters: 8, text: '2', helpTip: 'Improves speed at the cost of accuracy' }, \
+                }, \
+                selectionLabel: StaticText { text: 'Selected Items: ' }, \
+            } \
+        }, \
+        rightGroup: Group { orientation: 'column', alignChildren:'fill', \
+            okButton: Button { text: 'OK' }, \
+            cancelButton: Button { text: 'Cancel' } \
+        } \
+    } ");
+    
+    var lineSkipText = deflickerDialog.leftGroup.deflickerPanel.lineSkipGroup.lineSkipText;
+    var percentileText = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileText;
+    var okButton = deflickerDialog.rightGroup.okButton;
+    var cancelButton = deflickerDialog.rightGroup.cancelButton;
+    
+    deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length;
+    lineSkipText.text = lineSkip;
+    percentileText.text = percentile;
+    lineSkipText.onChange = function() { lineSkip = Math.max(1, Math.round(Number(lineSkipText.text))); };
+    percentileText.onChange = function() { percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); };
+    okButton.onClick = function() { deflickerDialog.close(true); };
+    cancelButton.onClick = function() { deflickerDialog.close(false);};
+    
+    if(deflickerDialog.show())
+    {
+        deflicker();
+    }
 }
 
-var lineSkip = 2;
+function convertToEV(value)
+{
+    return evCurveCoefficent * Math.log(value);
+}
 
 function computeHistogram(bitmap)
 {
@@ -279,31 +323,17 @@ function computeHistogram(bitmap)
     return histogram;
 }
 
-var percentiles = [0, 0.3, 0.5, 0.75, 0.95, 0.99, 1.0];
-
-function computePercentiles(histogram, total)
+function computePercentile(histogram, percentile, total)
 {
-    var result = new Array(percentiles.length);
-    result[0] = 0;
     var runningTotal = 0;
     var level = 0;
     for(level = 0; level < 256; level++)
     {
         runningTotal += histogram[level];
-        if(runningTotal == 0)
-            result[0] = level;
-        for(var p = 1; p < percentiles.length - 1; p++)
-        {
-            if(runningTotal / total < percentiles[p])
-                result[p] = level;
-        }
-        if(runningTotal / total >= 1.0 || level == 255)
-        {
-            result[percentiles.length - 1] = level;
-            break;
-        }
+        if(runningTotal / total >= percentile)
+            return level;
     }
-    return result;
+    return 255;
 }
 
 function deflicker()
@@ -318,7 +348,7 @@ function deflicker()
     statusText.text = "Processing " + thumb.name;
     var bitmap = thumb.core.preview.preview;
     var histogram = computeHistogram(bitmap);
-    var targetStart = computePercentiles(histogram, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+    var targetStart = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
     var targetEnd = targetStart;
     
     if(count > 2)
@@ -329,7 +359,7 @@ function deflicker()
         statusText.text = "Processing " + thumb.name;
         bitmap = thumb.core.preview.preview;
         histogram = computeHistogram(bitmap);
-        targetEnd = computePercentiles(histogram, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+        targetEnd = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
     }
     
     for(var i = 1; i < count - (count > 2 ? 1 : 0); i++)
@@ -339,22 +369,20 @@ function deflicker()
         statusText.text = "Processing " + thumb.name;
         bitmap = thumb.core.preview.preview;
         histogram = computeHistogram(bitmap);
-        computed = computePercentiles(histogram, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+        computed = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
         
         var xmp = new XMPMeta();
+        var offset = 0;
         if(thumb.hasMetadata)
         {
             //load the xmp metadata
             var md = thumb.synchronousMetadata;
             var xmp =  new XMPMeta(md.serialize());
-            xmp.deleteProperty(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012');
+            offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
         }
-        for(var j = 0; j < computed.length; j++)
-        {
-            var targetY =  (i / count) * (targetEnd[j] - targetStart[j]) + targetStart[j];
-            xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, 'ToneCurvePV2012', computed[j] + ", " + targetY, 0, XMPConst.ARRAY_IS_ORDERED);
-            $.writeln(computed[j] + ", " + targetY);
-        }
+        var target =  (i / count) * (targetEnd - targetStart) + targetStart;
+        var ev = convertToEV(target) - convertToEV(computed) + offset;
+        xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
         
         // Write the packet back to the selected file
         var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);

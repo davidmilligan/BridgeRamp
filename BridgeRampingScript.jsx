@@ -260,6 +260,7 @@ function applyRamp(property, startValue, endValue, additive)
     }
 }
 
+var previewHistogram = null;
 
 function runDeflickerMain()
 {
@@ -269,6 +270,7 @@ function runDeflickerMain()
                 percentileGroup: Group{ \
                     percentileLabel: StaticText { text: 'Percentile: ' }, \
                     percentileText: EditText { characters: 8, text: '0.5' }, \
+                    previewButton: Button { text: 'Preview', helpTip: 'Shows the image with the percentile level highlighted'}, \
                 }, \
                 lineSkipGroup: Group { \
                     lineSkipLabel: StaticText { text: 'Line Skip: ' }, \
@@ -287,6 +289,8 @@ function runDeflickerMain()
     var percentileText = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileText;
     var okButton = deflickerDialog.rightGroup.okButton;
     var cancelButton = deflickerDialog.rightGroup.cancelButton;
+    var previewButton = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.previewButton;
+    previewHistogram = null;
     
     deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length;
     lineSkipText.text = lineSkip;
@@ -295,11 +299,36 @@ function runDeflickerMain()
     percentileText.onChange = function() { percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); };
     okButton.onClick = function() { deflickerDialog.close(true); };
     cancelButton.onClick = function() { deflickerDialog.close(false);};
+    previewButton.onClick = function() { percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); showPercentilePreview(); };
     
     if(deflickerDialog.show())
     {
         deflicker();
     }
+}
+
+function showPercentilePreview()
+{
+    //get target values from the first image
+    var thumb = app.document.selections[0];
+    var bitmap = thumb.core.preview.preview;
+    if(previewHistogram == null)
+        previewHistogram = computeHistogram(bitmap);
+    var level = computePercentile(previewHistogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+    var output = bitmap.clone();
+    for(var x = 0; x < output.width; x+=lineSkip)
+    {
+        for(var y = 0; y < output.height; y+=lineSkip)
+        {
+            var pixel = new Color(output.getPixel(x,y));
+            var lum = Math.round((pixel.red + pixel.green + pixel.blue)/3);
+            if(lum >= level - 4 && lum <= level + 4)
+                output.setPixel(x, y, "#ff0000");
+        }
+    }
+    var tempFilename = Folder.temp + "/PercentilePreview.jpg";
+    output.exportTo(tempFilename, 10);
+    File(tempFilename).execute();
 }
 
 function convertToEV(value)

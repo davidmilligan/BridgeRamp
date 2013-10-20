@@ -232,8 +232,6 @@ function applyRamp(property, startValue, endValue, additive)
     for(var i = 0; i < count; i++)
     {
         var thumb = app.document.selections[i];
-        progress.value = 100 * i / (count + 1);
-        statusText.text = "Processing " + thumb.name;
         
         var xmp =  new XMPMeta();
         var offset = 0;

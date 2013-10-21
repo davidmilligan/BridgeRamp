@@ -16,6 +16,7 @@
 var lineSkip = 3;
 var percentile = 0.7;
 var evCurveCoefficent = 2 / Math.log(2);
+var keyframeRating = 1;
 
 function BrRamp()
 {
@@ -23,6 +24,7 @@ function BrRamp()
     
     this.rampMenuID = "brRampContextMenu";
     this.deflickerMenuID = "deflickerContextMenu";
+    this.rampAllMenuID = "brRampAllContextMenu";
 }
 
 BrRamp.prototype.run = function()
@@ -51,14 +53,19 @@ BrRamp.prototype.run = function()
     }
 
     // create the menu element
-    var cntCommand = new MenuElement("command", "Ramp ACR Settings...", "at the end of Thumbnail", this.rampMenuID);
-    var dflCommand = new MenuElement("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
+    var rampCommand = new MenuElement("command", "Ramp ACR Setting...", "at the end of Thumbnail", this.rampMenuID);
+    var rampAllCommand = new MenuElement("command", "Ramp All ACR Settings", "at the end of Thumbnail", this.rampAllMenuID);
+    var deflickerCommand = new MenuElement("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
 
-    cntCommand.onSelect = function(m)
+    rampCommand.onSelect = function(m)
     {
         runRampMain();
     };
-    dflCommand.onSelect = function(m)
+    rampAllCommand.onSelect = function(m)
+    {
+        rampAll();
+    };
+    deflickerCommand.onSelect = function(m)
     {
         runDeflickerMain();
     };
@@ -88,8 +95,9 @@ BrRamp.prototype.run = function()
         catch(error){ }
     };
     
-    cntCommand.onDisplay = onDisplay;
-    dflCommand.onDisplay = onDisplay;
+    rampCommand.onDisplay = onDisplay;
+    rampAllCommand.onDisplay = onDisplay;
+    deflickerCommand.onDisplay = onDisplay;
     
     return retval;
 }
@@ -98,6 +106,20 @@ BrRamp.prototype.canRun = function()
 {   
     return BridgeTalk.appName == "bridge" && ! MenuElement.find(this.menuID);
 }
+
+var allProperties = [
+	"Temperature", "Tint", 
+	"Exposure2012", "Contrast2012", "Highlights2012", "Shadows2012", "Whites2012", "Blacks2012",
+	"Clarity2012", "Vibrance", "Saturation",
+	"Sharpness", "SharpenRadius", "SharpenDetail", "SharpenEdgeMasking",
+	"ColorNoiseReduction", "ColorNoiseReductionDetail", "ColorNoiseReductionSmoothness",
+	"LuminanceSmoothing", "VignetteAmount", "ShadowTint",
+	"RedHue", "RedSaturation", "GreenHue", "GreenSaturation", "BlueHue", "BlueSaturation",
+    "HueAdjustmentRed", "HueAdjustmentOrange", "HueAdjustmentYellow", "HueAdjustmentGreen", "HueAdjustmentAqua", "HueAdjustmentBlue", "HueAdjustmentPurple", "HueAdjustmentMagenta",
+    "SaturationAdjustmentRed", "SaturationAdjustmentOrange", "SaturationAdjustmentYellow", "SaturationAdjustmentGreen", "SaturationAdjustmentAqua", "SaturationAdjustmentBlue", "SaturationAdjustmentPurple", "SaturationAdjustmentMagenta",
+    "LuminanceAdjustmentRed", "LuminanceAdjustmentOrange", "LuminanceAdjustmentYellow", "LuminanceAdjustmentGreen", "LuminanceAdjustmentAqua", "LuminanceAdjustmentBlue", "LuminanceAdjustmentPurple", "LuminanceAdjustmentMagenta",
+    "SplitToningShadowHue", "SplitToningShadowSaturation", "SplitToningHighlightHue", "SplitToningHighlightSaturation", "SplitToningBalance",
+    "ParametricShadows", "ParametricDarks", "ParametricLights", "ParametricHighlights", "ParametricShadowSplit", "ParametricMidtoneSplit", "ParametricHighlightSplit"];
 
 function runRampMain()
 {
@@ -128,102 +150,47 @@ function runRampMain()
     var okButton = rampDialog.rightGroup.okButton;
     var cancelButton = rampDialog.rightGroup.cancelButton;
     var propertyBox = rampDialog.leftGroup.rampPanel.propertyBox;
-    propertyBox.add("Item", "Temperature");
-    propertyBox.add("Item", "Tint");
-    propertyBox.add("Item", "Exposure2012");
-    propertyBox.add("Item", "Contrast2012");
-    propertyBox.add("Item", "Highlights2012");
-    propertyBox.add("Item", "Shadows2012");
-    propertyBox.add("Item", "Whites2012");
-    propertyBox.add("Item", "Blacks2012");
-    propertyBox.add("Item", "Clarity2012");
-    propertyBox.add("Item", "Saturation");
-    propertyBox.add("Item", "Sharpness");
-    propertyBox.add("Item", "LuminanceSmoothing");
-    propertyBox.add("Item", "ColorNoiseReduction");
-    propertyBox.add("Item", "VignetteAmount");
-    propertyBox.add("Item", "ShadowTint");
-    propertyBox.add("Item", "RedHue");
-    propertyBox.add("Item", "RedSaturation");
-    propertyBox.add("Item", "GreenHue");
-    propertyBox.add("Item", "GreenSaturation");
-    propertyBox.add("Item", "BlueHue");
-    propertyBox.add("Item", "BlueSaturation");
-    propertyBox.add("Item", "Vibrance");
-    propertyBox.add("Item", "HueAdjustmentRed");
-    propertyBox.add("Item", "HueAdjustmentOrange");
-    propertyBox.add("Item", "HueAdjustmentYellow");
-    propertyBox.add("Item", "HueAdjustmentGreen");
-    propertyBox.add("Item", "HueAdjustmentAqua");
-    propertyBox.add("Item", "HueAdjustmentBlue");
-    propertyBox.add("Item", "HueAdjustmentPurple");
-    propertyBox.add("Item", "HueAdjustmentMagenta");
-    propertyBox.add("Item", "SaturationAdjustmentRed");
-    propertyBox.add("Item", "SaturationAdjustmentOrange");
-    propertyBox.add("Item", "SaturationAdjustmentYellow");
-    propertyBox.add("Item", "SaturationAdjustmentGreen");
-    propertyBox.add("Item", "SaturationAdjustmentAqua");
-    propertyBox.add("Item", "SaturationAdjustmentBlue");
-    propertyBox.add("Item", "SaturationAdjustmentPurple");
-    propertyBox.add("Item", "SaturationAdjustmentMagenta");
-    propertyBox.add("Item", "LuminanceAdjustmentRed");
-    propertyBox.add("Item", "LuminanceAdjustmentOrange");
-    propertyBox.add("Item", "LuminanceAdjustmentYellow");
-    propertyBox.add("Item", "LuminanceAdjustmentGreen");
-    propertyBox.add("Item", "LuminanceAdjustmentAqua");
-    propertyBox.add("Item", "LuminanceAdjustmentBlue");
-    propertyBox.add("Item", "LuminanceAdjustmentPurple");
-    propertyBox.add("Item", "LuminanceAdjustmentMagenta");
-    propertyBox.add("Item", "SplitToningShadowHue");
-    propertyBox.add("Item", "SplitToningShadowSaturation");
-    propertyBox.add("Item", "SplitToningHighlightHue");
-    propertyBox.add("Item", "SplitToningHighlightSaturation");
-    propertyBox.add("Item", "SplitToningBalance");
-    propertyBox.add("Item", "ParametricShadows");
-    propertyBox.add("Item", "ParametricDarks");
-    propertyBox.add("Item", "ParametricLights");
-    propertyBox.add("Item", "ParametricHighlights");
-    propertyBox.add("Item", "ParametricShadowSplit");
-    propertyBox.add("Item", "ParametricMidtoneSplit");
-    propertyBox.add("Item", "ParametricHighlightSplit");
-    propertyBox.add("Item", "SharpenRadius");
-    propertyBox.add("Item", "SharpenDetail");
-    propertyBox.add("Item", "SharpenEdgeMasking");
-    propertyBox.add("Item", "PostCropVignetteAmount");
-    propertyBox.add("Item", "GrainAmount");
-    propertyBox.add("Item", "ColorNoiseReductionDetail");
-    propertyBox.add("Item", "ColorNoiseReductionSmoothness");
-    propertyBox.add("Item", "LensProfileEnable");
-    propertyBox.add("Item", "LensManualDistortionAmount");
-    propertyBox.add("Item", "PerspectiveVertical");
-    propertyBox.add("Item", "PerspectiveHorizontal");
-    propertyBox.add("Item", "PerspectiveRotate");
-    propertyBox.add("Item", "PerspectiveScale");
-    propertyBox.add("Item", "PerspectiveAspect");
-    propertyBox.add("Item", "PerspectiveUpright");
-    propertyBox.add("Item", "AutoLateralCA");
-    propertyBox.add("Item", "DefringePurpleAmount");
-    propertyBox.add("Item", "DefringePurpleHueLo");
-    propertyBox.add("Item", "DefringePurpleHueHi");
-    propertyBox.add("Item", "DefringeGreenAmount");
-    propertyBox.add("Item", "DefringeGreenHueLo");
-    propertyBox.add("Item", "DefringeGreenHueHi");
+    for(var i = 0; i < allProperties.length; i++)
+    	propertyBox.add("Item", allProperties[i]);
    
     propertyBox.selection = 2;
     
     rampDialog.leftGroup.rampPanel.selectionLabel.text += app.document.selections.length;
     
+    var startText = rampDialog.leftGroup.rampPanel.startGroup.startText;
+    var endText = rampDialog.leftGroup.rampPanel.endGroup.endText
+    
     okButton.onClick = function() { rampDialog.close(true); };
     cancelButton.onClick = function() { rampDialog.close(false);};
+    propertyBox.onChange = function()
+    {
+    	startText.text = getProperty(propertyBox.selection.text, 0);
+    	endText.text = getProperty(propertyBox.selection.text, app.document.selections.length - 1);
+    }
+    propertyBox.onChange();
     
     if(rampDialog.show())
     {
         applyRamp(
             propertyBox.selection.text, 
-            Number(rampDialog.leftGroup.rampPanel.startGroup.startText.text), 
-            Number(rampDialog.leftGroup.rampPanel.endGroup.endText.text), 
+            Number(rstartText.text), 
+            Number(endText.text), 
             rampDialog.leftGroup.rampPanel.additiveGroup.additiveCheckBox.value);
     }
+}
+
+function getProperty(property, index)
+{
+	var thumb = app.document.selections[index];
+	var xmp =  new XMPMeta();
+	if(thumb.hasMetadata)
+	{
+		//load the xmp metadata
+		var md = thumb.synchronousMetadata;
+		xmp =  new XMPMeta(md.serialize());
+		return Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
+	}
+	return 0;
 }
 
 function applyRamp(property, startValue, endValue, additive)
@@ -255,6 +222,91 @@ function applyRamp(property, startValue, endValue, additive)
 
         // $.writeln(updatedPacket);
         thumb.metadata = new Metadata(updatedPacket);
+    }
+}
+
+function readSettings(keyframe)
+{
+	var result = new Array(allProperties.length);
+	var thumb = app.document.selections[keyframe];
+	var xmp =  new XMPMeta();
+	if(thumb.hasMetadata)
+	{
+		try
+		{
+			//load the xmp metadata
+			var md = thumb.synchronousMetadata;
+			xmp =  new XMPMeta(md.serialize());
+				
+			for(var j = 0; j < allProperties.length; j ++)
+				result[j] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, allProperties[j]));
+		}
+		catch(err)
+		{
+			alert("Error Loading Metadata for keyframe: "+ thumb.name);
+			return null;
+		}
+	}
+	else
+	{
+		alert("Error Loading Metadata for keyframe: "+ thumb.name);
+		return null;
+	}
+	return result;
+}
+
+function rampAll()
+{
+    var count = app.document.selections.length;
+    var currentKeyframe = 0;
+    var nextKeyframe = 1;
+    var targetStart = readSettings(currentKeyframe);
+	for(nextKeyframe = 1; nextKeyframe < count - 1; nextKeyframe++)
+	{
+		if(app.document.selections[nextKeyframe].rating == keyframeRating)
+			break;
+	}
+    var targetEnd = readSettings(nextKeyframe);
+    for(var i = 1; i < count - 1; i++)
+    {
+    	var thumb = app.document.selections[i];
+        if(thumb.rating == keyframeRating)
+        {
+        	currentKeyframe = nextKeyframe;
+        	targetStart = targetEnd;
+        	nextKeyframe = i + 1;
+        	for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
+        	{
+        		if(app.document.selections[nextKeyframe].rating == keyframeRating)
+        			break;
+        	}
+        	targetEnd = readSettings(nextKeyframe);
+        }
+        else
+        {
+        	if(targetStart == null || targetEnd == null)
+        		break;
+        	
+			var xmp =  new XMPMeta();
+			if(thumb.hasMetadata)
+			{
+				//load the xmp metadata
+				var md = thumb.synchronousMetadata;
+				xmp =  new XMPMeta(md.serialize());
+			}
+			
+			for(var j = 0; j < allProperties.length; j ++)
+			{
+				var value = (nextKeyframe - i) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
+				xmp.setProperty(XMPConst.NS_CAMERA_RAW, allProperties[j], value);
+			}
+			
+			// Write the packet back to the selected file
+			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+	
+			// $.writeln(updatedPacket);
+			thumb.metadata = new Metadata(updatedPacket);
+        }
     }
 }
 
@@ -372,50 +424,59 @@ function deflicker()
     //get target values from the first image
     var thumb = app.document.selections[0];
     progress.value = 100 * 1 / (count + 1);
-    statusText.text = "Processing " + thumb.name;
+    statusText.text = "Processing " + thumb.name + " (keyframe)";
     var bitmap = thumb.core.preview.preview;
     var histogram = computeHistogram(bitmap);
     var targetStart = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
     var targetEnd = targetStart;
     
-    if(count > 2)
-    {
-        //get target values from the last image
-        thumb = app.document.selections[count-1];
-        progress.value = 100 * 2 / (count + 1);
-        statusText.text = "Processing " + thumb.name;
-        bitmap = thumb.core.preview.preview;
-        histogram = computeHistogram(bitmap);
-        targetEnd = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
-    }
-    
-    for(var i = 1; i < count - (count > 2 ? 1 : 0); i++)
+    for(var i = 1; i < count - 1; i++)
     {
         thumb = app.document.selections[i];
-        progress.value = 100 * (i + 2) / (count + 1);
-        statusText.text = "Processing " + thumb.name;
-        bitmap = thumb.core.preview.preview;
-        histogram = computeHistogram(bitmap);
-        computed = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
-        
-        var xmp = new XMPMeta();
-        var offset = 0;
-        if(thumb.hasMetadata)
+        if(thumb.rating == keyframeRating)
         {
-            //load the xmp metadata
-            var md = thumb.synchronousMetadata;
-            var xmp =  new XMPMeta(md.serialize());
-            offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
+        	targetStart = targetEnd;
+        	var nextKeyframe = i + 1;
+        	for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
+        	{
+        		if(app.document.selections[nextKeyframe].rating == keyframeRating)
+        			break;
+        	}
+			//get target values from the last image
+			thumb = app.document.selections[k];
+			progress.value = 100 * 2 / (count + 1);
+			statusText.text = "Processing " + thumb.name + " (keyframe)";
+			bitmap = thumb.core.preview.preview;
+			histogram = computeHistogram(thumb);
+			targetEnd = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
         }
-        var target =  (i / count) * (targetEnd - targetStart) + targetStart;
-        var ev = convertToEV(target) - convertToEV(computed) + offset;
-        xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
-        
-        // Write the packet back to the selected file
-        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-
-        // $.writeln(updatedPacket);
-        thumb.metadata = new Metadata(updatedPacket);
+        else
+        {
+			progress.value = 100 * (i + 2) / (count + 1);
+			statusText.text = "Processing " + thumb.name;
+			bitmap = thumb.core.preview.preview;
+			histogram = computeHistogram(bitmap);
+			computed = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+			
+			var xmp = new XMPMeta();
+			var offset = 0;
+			if(thumb.hasMetadata)
+			{
+				//load the xmp metadata
+				var md = thumb.synchronousMetadata;
+				var xmp =  new XMPMeta(md.serialize());
+				offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
+			}
+			var target =  (i / count) * (targetEnd - targetStart) + targetStart;
+			var ev = convertToEV(target) - convertToEV(computed) + offset;
+			xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
+			
+			// Write the packet back to the selected file
+			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+	
+			// $.writeln(updatedPacket);
+			thumb.metadata = new Metadata(updatedPacket);
+        }
     }
     progressWindow.hide();
 }

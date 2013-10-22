@@ -297,7 +297,7 @@ function rampAll()
 			
 			for(var j = 0; j < allProperties.length; j ++)
 			{
-				var value = (nextKeyframe - i) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
+				var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
 				xmp.setProperty(XMPConst.NS_CAMERA_RAW, allProperties[j], value);
 			}
 			

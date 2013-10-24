@@ -24,7 +24,7 @@ function BrRamp()
     
     this.rampMenuID = "brRampContextMenu";
     this.deflickerMenuID = "deflickerContextMenu";
-    this.rampAllMenuID = "brRampAllContextMenu";
+    this.rampAllMenuID = "brRampMultiContextMenu";
 }
 
 BrRamp.prototype.run = function()
@@ -53,17 +53,17 @@ BrRamp.prototype.run = function()
     }
 
     // create the menu element
-    var rampCommand = new MenuElement("command", "Ramp ACR Setting...", "at the end of Thumbnail", this.rampMenuID);
-    var rampAllCommand = new MenuElement("command", "Ramp All ACR Settings", "at the end of Thumbnail", this.rampAllMenuID);
+    var rampCommand = new MenuElement("command", "Ramp...", "at the end of Thumbnail", this.rampMenuID);
+    var rampMultipleCommand = new MenuElement("command", "Ramp Multiple...", "at the end of Thumbnail", this.rampAllMenuID);
     var deflickerCommand = new MenuElement("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
 
     rampCommand.onSelect = function(m)
     {
-        runRampMain();
+        runRamp();
     };
-    rampAllCommand.onSelect = function(m)
+    rampMultipleCommand.onSelect = function(m)
     {
-        rampAll();
+        runRampMultiple();
     };
     deflickerCommand.onSelect = function(m)
     {
@@ -96,7 +96,7 @@ BrRamp.prototype.run = function()
     };
     
     rampCommand.onDisplay = onDisplay;
-    rampAllCommand.onDisplay = onDisplay;
+    rampMultipleCommand.onDisplay = onDisplay;
     deflickerCommand.onDisplay = onDisplay;
     
     return retval;
@@ -121,7 +121,11 @@ var allProperties = [
     "SplitToningShadowHue", "SplitToningShadowSaturation", "SplitToningHighlightHue", "SplitToningHighlightSaturation", "SplitToningBalance",
     "ParametricShadows", "ParametricDarks", "ParametricLights", "ParametricHighlights", "ParametricShadowSplit", "ParametricMidtoneSplit", "ParametricHighlightSplit"];
 
-function runRampMain()
+    
+    
+/******************************************************************************/
+
+function runRamp()
 {
     var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
@@ -173,7 +177,7 @@ function runRampMain()
     {
         applyRamp(
             propertyBox.selection.text, 
-            Number(rstartText.text), 
+            Number(startText.text), 
             Number(endText.text), 
             rampDialog.leftGroup.rampPanel.additiveGroup.additiveCheckBox.value);
     }
@@ -225,7 +229,175 @@ function applyRamp(property, startValue, endValue, additive)
     }
 }
 
-function readSettings(keyframe)
+/******************************************************************************/
+
+var enabledSettings = null;
+
+function runRampMultiple()
+{
+	var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
+        leftGroup: Group { orientation: 'column', alignChildren:'left', \
+            settingsPanel: Panel { orientation: 'row', text: 'Settings', \
+            	group1: Group { orientation: 'column', alignChildren:'left' } \
+            	group2: Group { orientation: 'column', alignChildren:'left' } \
+            	group3: Group { orientation: 'column', alignChildren:'left' } \
+            } \
+        }, \
+        rightGroup: Group { orientation: 'column', alignChildren:'fill', \
+            okButton: Button { text: 'OK' }, \
+            cancelButton: Button { text: 'Cancel' }, \
+            line1: Panel { height: 3 }, \
+            allButton: Button { text: 'Check All' }, \
+            noneButton: Button { text: 'Check None' }, \
+        } \
+    } ");
+    
+    var settingsPanel = rampDialog.leftGroup.settingsPanel;
+    var okButton = rampDialog.rightGroup.okButton;
+    var cancelButton = rampDialog.rightGroup.cancelButton;
+    var allButton = rampDialog.rightGroup.allButton;
+    var noneButton = rampDialog.rightGroup.noneButton;
+    var checkboxes = new Array(allProperties.length);
+    
+    if(enabledSettings == null)
+    {
+    	enabledSettings = new Array();
+		for(var i = 0; i < allProperties.length; i++)
+		{
+			enabledSettings.push(allProperties[i]);
+		}
+    }
+    
+    for(var i = 0; i < allProperties.length; i++)
+    {
+    	var checkbox = null;
+    	if(i < allProperties.length / 3)
+    	{
+    		checkbox = settingsPanel.group1.add("checkbox", undefined, allProperties[i]);
+    	}
+    	else if(i < allProperties.length * 2 / 3)
+    	{
+    		checkbox = settingsPanel.group2.add("checkbox", undefined, allProperties[i]);
+    	}
+    	else
+    	{
+    		checkbox = settingsPanel.group3.add("checkbox", undefined, allProperties[i]);
+    	}
+    	checkboxes[i] = checkbox;
+    	checkbox.value = indexOf(enabledSettings, allProperties[i]) >= 0;
+    	checkbox.onClick = function()
+		{
+			if(this.value)
+			{
+				if(indexOf(enabledSettings, this.text) == -1)
+					enabledSettings.push(this.text);
+			}
+			else
+			{
+				remove(enabledSettings, this.text);
+			}
+		};
+    }
+    allButton.onClick = function() 
+    {
+    	for(var i = 0; i < allProperties.length; i++)
+    	{
+    		checkboxes[i].value = true;
+    		checkboxes[i].onClick();
+    	}
+    }
+    noneButton.onClick = function() 
+    {
+    	for(var i = 0; i < allProperties.length; i++)
+    	{
+    		checkboxes[i].value = false;
+    		checkboxes[i].onClick();
+    	}
+    }
+    okButton.onClick = function() { rampDialog.close(true); };
+    cancelButton.onClick = function() { rampDialog.close(false);};
+    
+    if(rampDialog.show())
+    {
+    	rampMultiple(enabledSettings);
+    }
+}
+
+function indexOf(array, item)
+{
+	for(var i = 0; i < array.length; i++)
+	{
+		if(array[i] == item)
+			return i;
+	}
+	return -1;
+}
+
+function remove(array, item)
+{
+	var index = indexOf(array, item);
+	if(index >= 0)
+	{
+		array.splice(index, 1);
+	}
+}
+
+function rampMultiple(enabledSettings)
+{
+    var count = app.document.selections.length;
+    var currentKeyframe = 0;
+    var nextKeyframe = 1;
+    var targetStart = readSettings(currentKeyframe, enabledSettings);
+	for(nextKeyframe = 1; nextKeyframe < count - 1; nextKeyframe++)
+	{
+		if(app.document.selections[nextKeyframe].rating == keyframeRating)
+			break;
+	}
+    var targetEnd = readSettings(nextKeyframe, enabledSettings);
+    for(var i = 1; i < count - 1; i++)
+    {
+    	var thumb = app.document.selections[i];
+        if(thumb.rating == keyframeRating)
+        {
+        	currentKeyframe = nextKeyframe;
+        	targetStart = targetEnd;
+        	nextKeyframe = i + 1;
+        	for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
+        	{
+        		if(app.document.selections[nextKeyframe].rating == keyframeRating)
+        			break;
+        	}
+        	targetEnd = readSettings(nextKeyframe, enabledSettings);
+        }
+        else
+        {
+        	if(targetStart == null || targetEnd == null)
+        		break;
+        	
+			var xmp =  new XMPMeta();
+			if(thumb.hasMetadata)
+			{
+				//load the xmp metadata
+				var md = thumb.synchronousMetadata;
+				xmp =  new XMPMeta(md.serialize());
+			}
+			
+			for(var j = 0; j < enabledSettings.length; j ++)
+			{
+				var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
+				xmp.setProperty(XMPConst.NS_CAMERA_RAW, enabledSettings[j], value);
+			}
+			
+			// Write the packet back to the selected file
+			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+	
+			// $.writeln(updatedPacket);
+			thumb.metadata = new Metadata(updatedPacket);
+        }
+    }
+}
+
+function readSettings(keyframe, settings)
 {
 	var result = new Array(allProperties.length);
 	var thumb = app.document.selections[keyframe];
@@ -238,8 +410,8 @@ function readSettings(keyframe)
 			var md = thumb.synchronousMetadata;
 			xmp =  new XMPMeta(md.serialize());
 				
-			for(var j = 0; j < allProperties.length; j ++)
-				result[j] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, allProperties[j]));
+			for(var j = 0; j < settings.length; j ++)
+				result[j] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, settings[j]));
 		}
 		catch(err)
 		{
@@ -255,60 +427,8 @@ function readSettings(keyframe)
 	return result;
 }
 
-function rampAll()
-{
-    var count = app.document.selections.length;
-    var currentKeyframe = 0;
-    var nextKeyframe = 1;
-    var targetStart = readSettings(currentKeyframe);
-	for(nextKeyframe = 1; nextKeyframe < count - 1; nextKeyframe++)
-	{
-		if(app.document.selections[nextKeyframe].rating == keyframeRating)
-			break;
-	}
-    var targetEnd = readSettings(nextKeyframe);
-    for(var i = 1; i < count - 1; i++)
-    {
-    	var thumb = app.document.selections[i];
-        if(thumb.rating == keyframeRating)
-        {
-        	currentKeyframe = nextKeyframe;
-        	targetStart = targetEnd;
-        	nextKeyframe = i + 1;
-        	for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
-        	{
-        		if(app.document.selections[nextKeyframe].rating == keyframeRating)
-        			break;
-        	}
-        	targetEnd = readSettings(nextKeyframe);
-        }
-        else
-        {
-        	if(targetStart == null || targetEnd == null)
-        		break;
-        	
-			var xmp =  new XMPMeta();
-			if(thumb.hasMetadata)
-			{
-				//load the xmp metadata
-				var md = thumb.synchronousMetadata;
-				xmp =  new XMPMeta(md.serialize());
-			}
-			
-			for(var j = 0; j < allProperties.length; j ++)
-			{
-				var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
-				xmp.setProperty(XMPConst.NS_CAMERA_RAW, allProperties[j], value);
-			}
-			
-			// Write the packet back to the selected file
-			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-	
-			// $.writeln(updatedPacket);
-			thumb.metadata = new Metadata(updatedPacket);
-        }
-    }
-}
+
+/******************************************************************************/
 
 var previewHistogram = null;
 
@@ -316,11 +436,11 @@ function runDeflickerMain()
 {
     var deflickerDialog = new Window("dialog { orientation: 'row', text: 'Deflicker', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
-            deflickerPanel: Panel { text: 'Deflicker', \
+            deflickerPanel: Panel { text: 'Deflicker', alignChildren:'left', \
                 percentileGroup: Group{ \
                     percentileLabel: StaticText { text: 'Percentile: ' }, \
-                    percentileText: EditText { characters: 8, text: '0.5' }, \
-                    previewButton: Button { text: 'Preview', helpTip: 'Shows the image with the percentile level highlighted'}, \
+                    percentileSlider: Slider { minvalue: 0, maxvalue: 100, value: 50 }, \
+                    percentileText: EditText { characters: 5, text: '0.5', helpTip: 'Choose a value between 0.0 and 1.0. Use preview to ensure chosen percentile crosses the sky.'}, \
                 }, \
                 lineSkipGroup: Group { \
                     lineSkipLabel: StaticText { text: 'Line Skip: ' }, \
@@ -331,7 +451,9 @@ function runDeflickerMain()
         }, \
         rightGroup: Group { orientation: 'column', alignChildren:'fill', \
             okButton: Button { text: 'OK' }, \
-            cancelButton: Button { text: 'Cancel' } \
+            cancelButton: Button { text: 'Cancel' }, \
+            line1: Panel { height: 3 }, \
+            previewButton: Button { text: 'Preview', helpTip: 'Shows the image with the percentile level highlighted'} \
         } \
     } ");
     
@@ -339,14 +461,25 @@ function runDeflickerMain()
     var percentileText = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileText;
     var okButton = deflickerDialog.rightGroup.okButton;
     var cancelButton = deflickerDialog.rightGroup.cancelButton;
-    var previewButton = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.previewButton;
+    var previewButton = deflickerDialog.rightGroup.previewButton;
+    var percentileSlider = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileSlider;
     previewHistogram = null;
     
     deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length;
     lineSkipText.text = lineSkip;
     percentileText.text = percentile;
+    percentileSlider.value = percentile * 100;
     lineSkipText.onChange = function() { lineSkip = Math.max(1, Math.round(Number(lineSkipText.text))); };
-    percentileText.onChange = function() { percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); };
+    percentileText.onChange = function() 
+    { 
+    	percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); 
+    	percentileSlider.value = percentile * 100;
+    };
+    percentileSlider.onChange = function()
+    {
+    	percentile = Math.min(0.99, Math.max(0.01, Number(percentileSlider.value / 100))); 
+    	percentileText.text = percentile;
+    };
     okButton.onClick = function() { deflickerDialog.close(true); };
     cancelButton.onClick = function() { deflickerDialog.close(false);};
     previewButton.onClick = function() { percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); showPercentilePreview(); };
@@ -496,5 +629,4 @@ function initializeProgress()
     progressWindow.show();
 }
 
-//runRampMain();
 new BrRamp().run();

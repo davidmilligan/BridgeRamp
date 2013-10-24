@@ -59,15 +59,36 @@ BrRamp.prototype.run = function()
 
     rampCommand.onSelect = function(m)
     {
-        runRamp();
+    	try
+    	{
+    		runRamp();
+        }
+        catch(error)
+        {
+        	alert(error);
+        }
     };
     rampMultipleCommand.onSelect = function(m)
     {
-        runRampMultiple();
+    	try
+    	{
+    		runRampMultiple();
+        }
+        catch(error)
+        {
+        	alert(error);
+        }
     };
     deflickerCommand.onSelect = function(m)
     {
-        runDeflickerMain();
+    	try
+    	{
+    		runDeflickerMain();
+        }
+        catch(error)
+        {
+        	alert(error);
+        }
     };
 
     var onDisplay = function()

@@ -17,6 +17,9 @@ var lineSkip = 3;
 var percentile = 0.7;
 var evCurveCoefficent = 2 / Math.log(2);
 var keyframeRating = 1;
+var iterations = 1;
+var autoKeyframeEnabled = false;
+var autoKeyframe = 100;
 
 function BrRamp()
 {
@@ -180,7 +183,7 @@ function runRamp()
    
     propertyBox.selection = 2;
     
-    rampDialog.leftGroup.rampPanel.selectionLabel.text += app.document.selections.length;
+    rampDialog.leftGroup.rampPanel.selectionLabel.text += app.document.selections.length + " ";
     
     var startText = rampDialog.leftGroup.rampPanel.startGroup.startText;
     var endText = rampDialog.leftGroup.rampPanel.endGroup.endText
@@ -467,6 +470,15 @@ function runDeflickerMain()
                     lineSkipLabel: StaticText { text: 'Line Skip: ' }, \
                     lineSkipText: EditText { characters: 8, text: '2', helpTip: 'Improves speed at the cost of accuracy' }, \
                 }, \
+                iterationsGroup: Group{ \
+                    iterationsLabel: StaticText { text: 'Iterations: ' }, \
+                    iterationsText: EditText { characters: 3, text: '1', helpTip: 'How many deflicker passes to run' }, \
+                }, \
+                autoKeyframeGroup: Group{ \
+                    autoKeyframeCheckbox: Checkbox { text: 'Auto keyframe every ' }, \
+                    autoKeyframeText: EditText { characters: 4, text: '100' }, \
+                    autoKeyframeLabel: StaticText { text: ' frames' }, \
+                }, \
                 selectionLabel: StaticText { text: 'Selected Items: ' }, \
             } \
         }, \
@@ -484,13 +496,23 @@ function runDeflickerMain()
     var cancelButton = deflickerDialog.rightGroup.cancelButton;
     var previewButton = deflickerDialog.rightGroup.previewButton;
     var percentileSlider = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileSlider;
+    var iterationsText = deflickerDialog.leftGroup.deflickerPanel.iterationsGroup.iterationsText;
+    var autoKeyframeCheckbox = deflickerDialog.leftGroup.deflickerPanel.autoKeyframeGroup.autoKeyframeCheckbox;
+    var autoKeyframeText = deflickerDialog.leftGroup.deflickerPanel.autoKeyframeGroup.autoKeyframeText;
     previewHistogram = null;
     
-    deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length;
+    deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length + " ";
     lineSkipText.text = lineSkip;
     percentileText.text = percentile;
     percentileSlider.value = percentile * 100;
-    lineSkipText.onChange = function() { lineSkip = Math.max(1, Math.round(Number(lineSkipText.text))); };
+    iterationsText.text = iterations;
+    iterationsText.enabled = false; //not working yet!
+    autoKeyframeCheckbox.value = autoKeyframeEnabled;
+    autoKeyframeText.text = autoKeyframe;
+    lineSkipText.onChange = function() { lineSkip = Math.max(1, Math.round(Number(this.text))); };
+    iterationsText.onChange = function() { iterations = Number(this.text); };
+    autoKeyframeCheckbox.onChange = function() { autoKeyframeEnabled = this.value; };
+    autoKeyframeText.onChange = function() { autoKeyframe = Number(this.text); };
     percentileText.onChange = function() 
     { 
     	percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); 
@@ -575,67 +597,77 @@ function deflicker()
     var count = app.document.selections.length;
     app.synchronousMode = true; 
     
-    //get target values from the first image
-    var thumb = app.document.selections[0];
-    progress.value = 100 * 1 / (count + 1);
-    statusText.text = "Processing " + thumb.name + " (keyframe)";
-    var bitmap = thumb.core.preview.preview;
-    var histogram = computeHistogram(bitmap);
-    var targetStart = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
-    var targetEnd = targetStart;
-    
-    for(var i = 1; i < count - 1; i++)
+    for(var iteration = 0; iteration < iterations; iteration++)
     {
-        thumb = app.document.selections[i];
-        if(thumb.rating == keyframeRating)
-        {
-        	targetStart = targetEnd;
-        	var nextKeyframe = i + 1;
-        	for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
-        	{
-        		if(app.document.selections[nextKeyframe].rating == keyframeRating)
-        			break;
-        	}
-			//get target values from the last image
-			thumb = app.document.selections[k];
-			progress.value = 100 * 2 / (count + 1);
-			statusText.text = "Processing " + thumb.name + " (keyframe)";
-			bitmap = thumb.core.preview.preview;
-			histogram = computeHistogram(thumb);
-			targetEnd = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
-        }
-        else
-        {
-			progress.value = 100 * (i + 2) / (count + 1);
-			statusText.text = "Processing " + thumb.name;
-			bitmap = thumb.core.preview.preview;
-			histogram = computeHistogram(bitmap);
-			computed = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
-			
-			var xmp = new XMPMeta();
-			var offset = 0;
-			if(thumb.hasMetadata)
+    	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
+    	if(iteration > 0)
+    	{
+    		//TODO: Figure out how to purge the preview cache
+    	}
+		//get target values from the first image
+		var thumb = app.document.selections[0];
+		progress.value = 100 * 1 / (count + 1);
+		statusText.text = "Processing " + thumb.name + " (keyframe)";
+		var bitmap = thumb.core.preview.preview;
+		var histogram = computeHistogram(bitmap);
+		var targetStart = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+		var targetEnd = targetStart;
+		
+		for(var i = 1; i < count - 1; i++)
+		{
+			thumb = app.document.selections[i];
+			if((thumb.rating == keyframeRating) || 
+				(autoKeyframeEnabled && (i % autoKeyframe == 0)))
 			{
-				//load the xmp metadata
-				var md = thumb.synchronousMetadata;
-				var xmp =  new XMPMeta(md.serialize());
-				offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
+				targetStart = targetEnd;
+				var nextKeyframe = i + 1;
+				for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
+				{
+					if((app.document.selections[nextKeyframe].rating == keyframeRating) || 
+						(autoKeyframeEnabled && (nextKeyframe % autoKeyframe == 0)))
+						break;
+				}
+				//get target values from the last image
+				thumb = app.document.selections[k];
+				progress.value = 100 * 2 / (count + 1);
+				statusText.text = "Processing " + thumb.name + " (keyframe)";
+				bitmap = thumb.core.preview.preview;
+				histogram = computeHistogram(thumb);
+				targetEnd = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
 			}
-			var target =  (i / count) * (targetEnd - targetStart) + targetStart;
-			var ev = convertToEV(target) - convertToEV(computed) + offset;
-			xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
-			
-			// Write the packet back to the selected file
-			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-	
-			// $.writeln(updatedPacket);
-			thumb.metadata = new Metadata(updatedPacket);
-        }
+			else
+			{
+				progress.value = 100 * (i + 2) / (count + 1);
+				statusText.text = "Processing " + thumb.name;
+				bitmap = thumb.core.preview.preview;
+				histogram = computeHistogram(bitmap);
+				computed = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+				
+				var xmp = new XMPMeta();
+				var offset = 0;
+				if(thumb.hasMetadata)
+				{
+					//load the xmp metadata
+					var md = thumb.synchronousMetadata;
+					var xmp =  new XMPMeta(md.serialize());
+					offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
+				}
+				var target =  (i / count) * (targetEnd - targetStart) + targetStart;
+				var ev = convertToEV(target) - convertToEV(computed) + offset;
+				xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
+				
+				// Write the packet back to the selected file
+				var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+		
+				// $.writeln(updatedPacket);
+				thumb.metadata = new Metadata(updatedPacket);
+			}
+		}
     }
     progressWindow.hide();
 }
 
-function initializeProgress()
+function initializeProgress(title)
 {
     progressWindow = new Window("palette { text:'Deflicker Progress', \
         statusText: StaticText { text: 'Processing Images...', preferredSize: [350,20] }, \
@@ -644,6 +676,7 @@ function initializeProgress()
             cancelButton: Button { text: 'Cancel' } \
         } \
     }");
+    progressWindow.text = title;
     statusText = progressWindow.statusText;
     progress = progressWindow.progressGroup.progress;
     progressWindow.progressGroup.cancelButton.onClick = function() { userCanceled = true; }

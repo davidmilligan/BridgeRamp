@@ -30,16 +30,9 @@ function BrRamp()
     this.rampAllMenuID = "brRampMultiContextMenu";
 }
 
-BrRamp.prototype.run = function()
+function loadXMPLibrary()
 {
-
-    var retval = true;
-    if(!this.canRun()) {
-        retval = false; 
-        return retval;
-    }
-    
-    // Load the XMP Script library
+	// Load the XMP Script library
     if( xmpLib == undefined ) 
     {
         if( Folder.fs == "Windows" )
@@ -54,7 +47,20 @@ BrRamp.prototype.run = function()
         var libfile = new File( pathToLib );
         var xmpLib = new ExternalObject("lib:" + pathToLib );
     }
+}
 
+BrRamp.prototype.run = function()
+{
+
+    var retval = true;
+    if(!this.canRun()) 
+    {
+        retval = false; 
+        return retval;
+    }
+    
+    loadXMPLibrary();
+    
     // create the menu element
     var rampCommand = new MenuElement("command", "Ramp...", "at the end of Thumbnail", this.rampMenuID);
     var rampMultipleCommand = new MenuElement("command", "Ramp Multiple...", "at the end of Thumbnail", this.rampAllMenuID);
@@ -506,7 +512,6 @@ function runDeflickerMain()
     percentileText.text = percentile;
     percentileSlider.value = percentile * 100;
     iterationsText.text = iterations;
-    iterationsText.enabled = false; //not working yet!
     autoKeyframeCheckbox.value = autoKeyframeEnabled;
     autoKeyframeText.text = autoKeyframe;
     lineSkipText.onChange = function() { lineSkip = Math.max(1, Math.round(Number(this.text))); };
@@ -596,16 +601,21 @@ function deflicker()
     initializeProgress();
     var count = app.document.selections.length;
     app.synchronousMode = true; 
+    var items = new Array(count);
+    for(var i = 0; i < count; i++)
+		items[i] = app.document.selections[i];
     
     for(var iteration = 0; iteration < iterations; iteration++)
     {
     	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
     	if(iteration > 0)
     	{
-    		//TODO: Figure out how to purge the preview cache
+    		app.purgeFolderCache(items[0]);
+			for(var i = 0; i < count; i++)
+				app.document.select(items[i]);
     	}
 		//get target values from the first image
-		var thumb = app.document.selections[0];
+		var thumb = items[0];
 		progress.value = 100 * 1 / (count + 1);
 		statusText.text = "Processing " + thumb.name + " (keyframe)";
 		var bitmap = thumb.core.preview.preview;
@@ -615,7 +625,7 @@ function deflicker()
 		
 		for(var i = 1; i < count - 1; i++)
 		{
-			thumb = app.document.selections[i];
+			thumb = items[i];
 			if((thumb.rating == keyframeRating) || 
 				(autoKeyframeEnabled && (i % autoKeyframe == 0)))
 			{
@@ -623,13 +633,13 @@ function deflicker()
 				var nextKeyframe = i + 1;
 				for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
 				{
-					if((app.document.selections[nextKeyframe].rating == keyframeRating) || 
+					if((items[nextKeyframe].rating == keyframeRating) || 
 						(autoKeyframeEnabled && (nextKeyframe % autoKeyframe == 0)))
 						break;
 				}
 				//get target values from the last image
-				thumb = app.document.selections[nextKeyframe];
-				progress.value = 100 * i / (count + 1);
+				thumb = items[nextKeyframe];
+				progress.value = 100 * (i + 2) / (count + 1);
 				statusText.text = "Processing " + thumb.name + " (keyframe)";
 				bitmap = thumb.core.preview.preview;
 				histogram = computeHistogram(thumb);

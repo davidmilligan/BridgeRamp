@@ -151,7 +151,7 @@ var allProperties = [
 
 function runRamp()
 {
-    var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
+	var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
             rampPanel: Panel { text: 'Ramp', \
                 propertyBox: DropDownList { }, \
@@ -628,8 +628,8 @@ function deflicker()
 						break;
 				}
 				//get target values from the last image
-				thumb = app.document.selections[k];
-				progress.value = 100 * 2 / (count + 1);
+				thumb = app.document.selections[nextKeyframe];
+				progress.value = 100 * i / (count + 1);
 				statusText.text = "Processing " + thumb.name + " (keyframe)";
 				bitmap = thumb.core.preview.preview;
 				histogram = computeHistogram(thumb);

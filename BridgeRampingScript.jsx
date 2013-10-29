@@ -610,9 +610,13 @@ function deflicker()
     	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
     	if(iteration > 0)
     	{
+    		statusText.text = "Regenerating Previews";
     		app.purgeFolderCache(items[0]);
 			for(var i = 0; i < count; i++)
+			{
 				app.document.select(items[i]);
+				items[i].refresh();
+			}
     	}
 		//get target values from the first image
 		var thumb = items[0];

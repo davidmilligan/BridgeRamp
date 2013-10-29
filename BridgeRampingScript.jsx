@@ -475,8 +475,8 @@ function runDeflickerMain()
                     lineSkipText: EditText { characters: 8, text: '2', helpTip: 'Improves speed at the cost of accuracy' }, \
                 }, \
                 iterationsGroup: Group{ \
-                    iterationsLabel: StaticText { text: 'Iterations: ' }, \
-                    iterationsText: EditText { characters: 3, text: '1', helpTip: 'How many deflicker passes to run' }, \
+                    iterationsLabel: StaticText { text: 'Max Iterations: ' }, \
+                    iterationsText: EditText { characters: 3, text: '1', helpTip: 'Maximum number of deflicker passes to run' }, \
                 }, \
                 selectionLabel: StaticText { text: 'Selected Items: ' }, \
             } \
@@ -595,6 +595,7 @@ function deflicker()
     for(var iteration = 0; iteration < iterations; iteration++)
     {
     	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
+    	$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
     	if(iteration > 0)
     	{
     		statusText.text = "Regenerating Previews";
@@ -613,6 +614,7 @@ function deflicker()
 		var histogram = computeHistogram(bitmap);
 		var targetStart = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
 		var targetEnd = targetStart;
+		var moreIterationsNeeded = false;
 		
 		for(var i = 1; i < count - 1; i++)
 		{
@@ -653,7 +655,9 @@ function deflicker()
 				}
 				var target =  (i / count) * (targetEnd - targetStart) + targetStart;
 				var ev = convertToEV(target) - convertToEV(computed) + offset;
-				$.writeln(thumb.name + ": " + ev);
+				if(Math.abs(target - computed) > 1)
+					moreIterationsNeeded = true;
+				$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
 				xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
 				
 				// Write the packet back to the selected file
@@ -663,7 +667,10 @@ function deflicker()
 				thumb.metadata = new Metadata(updatedPacket);
 			}
 		}
+		if(!moreIterationsNeeded)
+			break;
     }
+    app.purgeFolderCache(items[0]);
     progressWindow.hide();
 }
 

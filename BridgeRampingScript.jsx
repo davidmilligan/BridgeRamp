@@ -13,11 +13,12 @@
  * GNU General Public License for more details.
  */
 
-var lineSkip = 3;
 var percentile = 0.7;
 var evCurveCoefficent = 2 / Math.log(2);
 var keyframeRating = 1;
 var iterations = 1;
+var previewSize = 200;
+var deflickerThreshold = 3;
 
 function BrRamp()
 {
@@ -60,9 +61,9 @@ BrRamp.prototype.run = function()
     loadXMPLibrary();
     
     // create the menu element
-    var rampCommand = new MenuElement("command", "Ramp...", "at the end of Thumbnail", this.rampMenuID);
-    var rampMultipleCommand = new MenuElement("command", "Ramp Multiple...", "at the end of Thumbnail", this.rampAllMenuID);
-    var deflickerCommand = new MenuElement("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
+    var rampCommand = MenuElement.create("command", "Ramp...", "at the end of Thumbnail", this.rampMenuID);
+    var rampMultipleCommand = MenuElement.create("command", "Ramp Multiple...", "after " + this.rampMenuID, this.rampAllMenuID);
+    var deflickerCommand = MenuElement.create("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
 
     rampCommand.onSelect = function(m)
     {
@@ -470,10 +471,6 @@ function runDeflickerMain()
                     percentileSlider: Slider { minvalue: 0, maxvalue: 100, value: 50 }, \
                     percentileText: EditText { characters: 5, text: '0.5', helpTip: 'Choose a value between 0.0 and 1.0. Use preview to ensure chosen percentile crosses the sky.'}, \
                 }, \
-                lineSkipGroup: Group { \
-                    lineSkipLabel: StaticText { text: 'Line Skip: ' }, \
-                    lineSkipText: EditText { characters: 8, text: '2', helpTip: 'Improves speed at the cost of accuracy' }, \
-                }, \
                 iterationsGroup: Group{ \
                     iterationsLabel: StaticText { text: 'Max Iterations: ' }, \
                     iterationsText: EditText { characters: 3, text: '1', helpTip: 'Maximum number of deflicker passes to run' }, \
@@ -489,7 +486,6 @@ function runDeflickerMain()
         } \
     } ");
     
-    var lineSkipText = deflickerDialog.leftGroup.deflickerPanel.lineSkipGroup.lineSkipText;
     var percentileText = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileText;
     var okButton = deflickerDialog.rightGroup.okButton;
     var cancelButton = deflickerDialog.rightGroup.cancelButton;
@@ -499,11 +495,9 @@ function runDeflickerMain()
     previewHistogram = null;
     
     deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length + " ";
-    lineSkipText.text = lineSkip;
     percentileText.text = percentile;
     percentileSlider.value = percentile * 100;
     iterationsText.text = iterations;
-    lineSkipText.onChange = function() { lineSkip = Math.max(1, Math.round(Number(this.text))); };
     iterationsText.onChange = function() { iterations = Number(this.text); };
     percentileText.onChange = function() 
     { 
@@ -529,14 +523,14 @@ function showPercentilePreview()
 {
     //get target values from the first image
     var thumb = app.document.selections[0];
-    var bitmap = thumb.core.preview.preview;
+    var bitmap = thumb.core.preview.preview.resize(previewSize);
     if(previewHistogram == null)
         previewHistogram = computeHistogram(bitmap);
-    var level = computePercentile(previewHistogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+    var level = computePercentile(previewHistogram, percentile, bitmap.width * bitmap.height);
     var output = bitmap.clone();
-    for(var x = 0; x < output.width; x+=lineSkip)
+    for(var x = 0; x < output.width; x+=2)
     {
-        for(var y = 0; y < output.height; y+=lineSkip)
+        for(var y = 0; y < output.height; y+=2)
         {
             var pixel = new Color(output.getPixel(x,y));
             var lum = Math.round((pixel.red + pixel.green + pixel.blue)/3);
@@ -545,7 +539,7 @@ function showPercentilePreview()
         }
     }
     var tempFilename = Folder.temp + "/PercentilePreview.jpg";
-    output.exportTo(tempFilename, 10);
+    output.exportTo(tempFilename, 100);
     File(tempFilename).execute();
 }
 
@@ -559,9 +553,9 @@ function computeHistogram(bitmap)
     var histogram = new Array(256);
     for(var h = 0; h < 256; h++)
         histogram[h] = 0;
-    for(var x = 0; x < bitmap.width; x+=lineSkip)
+    for(var x = 0; x < bitmap.width; x++)
     {
-        for(var y = 0; y < bitmap.height; y+=lineSkip)
+        for(var y = 0; y < bitmap.height; y++)
         {
             var pixel = new Color(bitmap.getPixel(x,y));
             histogram[Math.round((pixel.red + pixel.green + pixel.blue)/3)]++;
@@ -587,6 +581,7 @@ function deflicker()
 {
     initializeProgress();
     var count = app.document.selections.length;
+    var moreIterationsNeeded = false;
     app.synchronousMode = true; 
     var items = new Array(count);
     for(var i = 0; i < count; i++)
@@ -596,25 +591,35 @@ function deflicker()
     {
     	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
     	$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
-    	if(iteration > 0)
-    	{
-    		statusText.text = "Regenerating Previews";
-    		app.purgeFolderCache(items[0]);
-			for(var i = 0; i < count; i++)
-			{
-				app.document.select(items[i]);
-				items[i].refresh();
-			}
-    	}
 		//get target values from the first image
 		var thumb = items[0];
 		progress.value = 100 * 1 / (count + 1);
 		statusText.text = "Processing " + thumb.name + " (keyframe)";
-		var bitmap = thumb.core.preview.preview;
+		var bitmap = (iteration == 0 ? thumb.core.preview.preview : new BitmapData(thumb.spec)).resize(previewSize);
 		var histogram = computeHistogram(bitmap);
-		var targetStart = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+		var targetStart = computePercentile(histogram, percentile, bitmap.width * bitmap.height);
 		var targetEnd = targetStart;
-		var moreIterationsNeeded = false;
+    	$.writeln("keyframe " + thumb.name + ": " + targetStart);
+		var findNextKeyframe = function(index)
+		{
+			var nextKeyframe = index + 1;
+			for(nextKeyframe = index + 1; nextKeyframe < count - 1; nextKeyframe++)
+			{
+				if(items[nextKeyframe].rating == keyframeRating)
+					break;
+			}
+			//get target values from the last image
+			var thumb = items[nextKeyframe];
+			progress.value = 100 * (index + 2) / (count + 1);
+			statusText.text = "Processing " + thumb.name + " (keyframe)";
+			var bitmap = (iteration == 0 ? thumb.core.preview.preview : new BitmapData(thumb.spec)).resize(previewSize);
+			var histogram = computeHistogram(bitmap);
+			var result = computePercentile(histogram, percentile, bitmap.width * bitmap.height);
+			$.writeln("keyframe " + thumb.name + ": " + result);
+			return result;
+		}
+		targetEnd = findNextKeyframe(0);
+		moreIterationsNeeded = false;
 		
 		for(var i = 1; i < count - 1; i++)
 		{
@@ -622,27 +627,15 @@ function deflicker()
 			if(thumb.rating == keyframeRating)
 			{
 				targetStart = targetEnd;
-				var nextKeyframe = i + 1;
-				for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
-				{
-					if(items[nextKeyframe].rating == keyframeRating)
-						break;
-				}
-				//get target values from the last image
-				thumb = items[nextKeyframe];
-				progress.value = 100 * (i + 2) / (count + 1);
-				statusText.text = "Processing " + thumb.name + " (keyframe)";
-				bitmap = thumb.core.preview.preview;
-				histogram = computeHistogram(thumb);
-				targetEnd = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+				targetEnd = findNextKeyframe(i);
 			}
 			else
 			{
 				progress.value = 100 * (i + 2) / (count + 1);
 				statusText.text = "Processing " + thumb.name;
-				bitmap = thumb.core.preview.preview;
+				bitmap = (iteration == 0 ? thumb.core.preview.preview : new BitmapData(thumb.spec)).resize(previewSize);
 				histogram = computeHistogram(bitmap);
-				computed = computePercentile(histogram, percentile, Math.ceil(bitmap.width / lineSkip) * Math.ceil(bitmap.height / lineSkip));
+				computed = computePercentile(histogram, percentile, bitmap.width * bitmap.height);
 				
 				var xmp = new XMPMeta();
 				var offset = 0;
@@ -655,7 +648,7 @@ function deflicker()
 				}
 				var target =  (i / count) * (targetEnd - targetStart) + targetStart;
 				var ev = convertToEV(target) - convertToEV(computed) + offset;
-				if(Math.abs(target - computed) > 1)
+				if(Math.abs(target - computed) > deflickerThreshold)
 					moreIterationsNeeded = true;
 				$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
 				xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
@@ -671,6 +664,8 @@ function deflicker()
 			break;
     }
     app.purgeFolderCache(items[0]);
+    if(moreIterationsNeeded)
+    	alert("More Deflicker Iterations may be needed");
     progressWindow.hide();
 }
 

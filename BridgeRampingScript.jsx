@@ -676,7 +676,7 @@ function deflicker()
         var thumb = items[0];
         progress.value = 100 * 1 / (count + 1);
         statusText.text = "Processing " + thumb.name + " (keyframe)";
-        var bitmap = thumb.core.preview.preview;
+        var bitmap = thumb.core.preview.preview.resize(previewSize);
         var targetStart = computePercentile(bitmap, percentile);
         var targetEnd = targetStart;
         //$.writeln("keyframe " + thumb.name + ": " + targetStart);
@@ -692,7 +692,7 @@ function deflicker()
             var thumb = items[nextKeyframe];
             progress.value = 100 * (index + 2) / (count + 1);
             statusText.text = "Processing " + thumb.name + " (keyframe)";
-            var bitmap = thumb.core.preview.preview;
+            var bitmap = thumb.core.preview.preview.resize(previewSize);
             var result = computePercentile(bitmap, percentile);
             //$.writeln("keyframe " + thumb.name + ": " + result);
             return result;
@@ -712,7 +712,7 @@ function deflicker()
             {
                 progress.value = 100 * (i + 2) / (count + 1);
                 statusText.text = "Processing " + thumb.name;
-                bitmap = thumb.core.preview.preview;
+                bitmap = thumb.core.preview.preview.resize(previewSize);
                 computed = computePercentile(bitmap, percentile);
                 
                 var xmp = new XMPMeta();

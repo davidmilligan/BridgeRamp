@@ -603,15 +603,12 @@ function showPercentilePreview()
     }
     var tempFilename = Folder.temp + "/PercentilePreview.jpg";
     var tempFile = File(tempFilename);
+    $.writeln("temp file path: " + tempFile.fsName);
     if(tempFile.exists)
     {
         tempFile.remove();
     }
     output.exportTo(tempFilename, 100);
-    while(!tempFile.exists)
-    {
-        $.sleep(100);
-    }
     File(tempFilename).execute();
     return level;
 }

@@ -19,6 +19,10 @@ var keyframeRating = 1;
 var iterations = 1;
 var previewSize = 200;
 var deflickerThreshold = 3;
+var cropX = 0;
+var cropY = 0;
+var cropWidth = 100;
+var cropHeight = 100;
 
 function BrRamp()
 {
@@ -459,8 +463,6 @@ function readSettings(keyframe, settings)
 
 /******************************************************************************/
 
-var previewHistogram = null;
-
 function runDeflickerMain()
 {
     var deflickerDialog = new Window("dialog { orientation: 'row', text: 'Deflicker', alignChildren:'top', \
@@ -471,34 +473,66 @@ function runDeflickerMain()
                     percentileSlider: Slider { minvalue: 0, maxvalue: 100, value: 50 }, \
                     percentileText: EditText { characters: 5, text: '0.5', helpTip: 'Choose a value between 0.0 and 1.0. Use preview to ensure chosen percentile crosses the sky.'}, \
                 }, \
+                previewSizeGroup: Group{ \
+                    previewSizeLabel: StaticText { text: 'Analysis Size: ' }, \
+                    previewSizeText: EditText { characters: 5, text: '200', helpTip: 'Resizes the image to this many pixels on the longest side before analysis (smaller = faster/less acurate)' }, \
+                }, \
+                cropLabel: StaticText { text: 'Analysis Crop (%): ' }, \
+                cropGroup: Group{ \
+                    cropXLabel: StaticText { text: 'X: ' }, \
+                    cropXText: EditText { characters: 3, text: '0' }, \
+                    cropYLabel: StaticText { text: 'Y: ' }, \
+                    cropYText: EditText { characters: 3, text: '0' }, \
+                    cropWidthLabel: StaticText { text: 'Width: ' }, \
+                    cropWidthText: EditText { characters: 3, text: '100' }, \
+                    cropHeightLabel: StaticText { text: 'Height: ' }, \
+                    cropHeightText: EditText { characters: 3, text: '100' }, \
+                }, \
                 iterationsGroup: Group{ \
                     iterationsLabel: StaticText { text: 'Max Iterations: ' }, \
                     iterationsText: EditText { characters: 3, text: '1', helpTip: 'Maximum number of deflicker passes to run' }, \
                 }, \
-                selectionLabel: StaticText { text: 'Selected Items: ' }, \
+                selectionLabel: StaticText { text: 'Selected Items: ???????' }, \
+                percentileLabel: StaticText { text: 'Percentile Level: ???????' }, \
             } \
         }, \
         rightGroup: Group { orientation: 'column', alignChildren:'fill', \
             okButton: Button { text: 'OK' }, \
             cancelButton: Button { text: 'Cancel' }, \
             line1: Panel { height: 3 }, \
-            previewButton: Button { text: 'Preview', helpTip: 'Shows the image with the percentile level highlighted'} \
+            previewButton: Button { text: 'Preview .', helpTip: 'Shows the image with the percentile level highlighted'} \
         } \
     } ");
     
+    var previewSizeText = deflickerDialog.leftGroup.deflickerPanel.previewSizeGroup.previewSizeText;
+    var cropXText = deflickerDialog.leftGroup.deflickerPanel.cropGroup.cropXText;
+    var cropYText = deflickerDialog.leftGroup.deflickerPanel.cropGroup.cropYText;
+    var cropWidthText = deflickerDialog.leftGroup.deflickerPanel.cropGroup.cropWidthText;
+    var cropHeightText = deflickerDialog.leftGroup.deflickerPanel.cropGroup.cropHeightText;
     var percentileText = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileText;
     var okButton = deflickerDialog.rightGroup.okButton;
     var cancelButton = deflickerDialog.rightGroup.cancelButton;
     var previewButton = deflickerDialog.rightGroup.previewButton;
     var percentileSlider = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileSlider;
+    var percentileLabel = deflickerDialog.leftGroup.deflickerPanel.percentileLabel;
     var iterationsText = deflickerDialog.leftGroup.deflickerPanel.iterationsGroup.iterationsText;
     previewHistogram = null;
     
-    deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text += app.document.selections.length + " ";
+    deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text = "Selected Items: " + app.document.selections.length;
     percentileText.text = percentile;
     percentileSlider.value = percentile * 100;
     iterationsText.text = iterations;
+    previewSizeText.text = previewSize;
+    cropXText.text = cropX;
+    cropYText.text = cropY;
+    cropWidthText.text = cropWidth;
+    cropHeightText.text = cropHeight;
     iterationsText.onChange = function() { iterations = Number(this.text); };
+    previewSizeText.onChange = function() { previewSize = Number(this.text); };
+    cropXText.onChange = function() { cropX = Math.max(this.text, 0); };
+    cropYText.onChange = function() { cropY = Math.max(this.text, 0); };
+    cropWidthText.onChange = function() { cropWidth = Math.min(this.text, 100); };
+    cropHeightText.onChange = function() { cropHeight = Math.min(this.text, 100); };
     percentileText.onChange = function() 
     { 
     	percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); 
@@ -509,9 +543,23 @@ function runDeflickerMain()
     	percentile = Math.min(0.99, Math.max(0.01, Number(percentileSlider.value / 100))); 
     	percentileText.text = percentile;
     };
-    okButton.onClick = function() { deflickerDialog.close(true); };
+    var updateAll = function()
+    {
+    	iterationsText.onChange();
+    	percentileText.onChange(); 
+    	previewSizeText.onChange();
+    	cropXText.onChange();
+    	cropYText.onChange();
+    	cropWidthText.onChange();
+    	cropHeightText.onChange();
+    }
+    okButton.onClick = function() { updateAll(); deflickerDialog.close(true); };
     cancelButton.onClick = function() { deflickerDialog.close(false);};
-    previewButton.onClick = function() { percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); showPercentilePreview(); };
+    previewButton.onClick = function() 
+    { 
+    	updateAll();
+    	percentileLabel.text = "Percentile Level: " + showPercentilePreview(); 
+    };
     
     if(deflickerDialog.show())
     {
@@ -524,23 +572,48 @@ function showPercentilePreview()
     //get target values from the first image
     var thumb = app.document.selections[0];
     var bitmap = thumb.core.preview.preview.resize(previewSize);
-    if(previewHistogram == null)
-        previewHistogram = computeHistogram(bitmap);
-    var level = computePercentile(previewHistogram, percentile, bitmap.width * bitmap.height);
+    var level = computePercentile(bitmap, percentile);
     var output = bitmap.clone();
-    for(var x = 0; x < output.width; x+=2)
+    var xmin = Math.round(Math.max(cropX * output.width / 100, 0));
+    var ymin = Math.round(Math.max(cropY * output.height / 100, 0));
+    var xmax = Math.min(cropX + cropWidth, 100) * output.width / 100;
+    var ymax = Math.min(cropY + cropHeight, 100) * output.height / 100;
+    for(var x = xmin; x < xmax; x+=2)
     {
-        for(var y = 0; y < output.height; y+=2)
+        for(var y = ymin; y < ymax; y+=2)
         {
-            var pixel = new Color(output.getPixel(x,y));
-            var lum = Math.round((pixel.red + pixel.green + pixel.blue)/3);
-            if(lum >= level - 4 && lum <= level + 4)
-                output.setPixel(x, y, "#ff0000");
+        	if(x == xmin || Math.abs(x - xmax) <= 2)
+        	{
+                output.setPixel(x, y, y % 8 < 4 ? "#000000" : "#ffffff");
+                output.setPixel(x, y + 1, y % 8 < 4 ? "#000000" : "#ffffff");
+        	}
+        	else if(y == ymin || Math.abs(y - ymax) <= 2)
+        	{
+                output.setPixel(x, y, x % 8 < 4 ? "#000000" : "#ffffff");
+                output.setPixel(x + 1, y, x % 8 < 4 ?"#000000" : "#ffffff");
+            }
+            else
+            {
+				var pixel = new Color(output.getPixel(x,y));
+				var lum = Math.round((pixel.red + pixel.green + pixel.blue)/3);
+				if(lum >= level - 4 && lum <= level + 4)
+					output.setPixel(x, y, "#ff0000");
+            }
         }
     }
     var tempFilename = Folder.temp + "/PercentilePreview.jpg";
+    var tempFile = File(tempFilename);
+    if(tempFile.exists)
+    {
+    	tempFile.remove();
+    }
     output.exportTo(tempFilename, 100);
+    while(!tempFile.exists)
+    {
+    	$.sleep(100);
+    }
     File(tempFilename).execute();
+    return level;
 }
 
 function convertToEV(value)
@@ -548,24 +621,26 @@ function convertToEV(value)
     return evCurveCoefficent * Math.log(value);
 }
 
-function computeHistogram(bitmap)
+function computePercentile(bitmap, percentile)
 {
     var histogram = new Array(256);
+    var total = 0;
     for(var h = 0; h < 256; h++)
         histogram[h] = 0;
-    for(var x = 0; x < bitmap.width; x++)
+    var xmin = Math.round(Math.max(cropX * bitmap.width / 100, 0));
+    var ymin = Math.round(Math.max(cropY * bitmap.height / 100, 0));
+    var xmax = Math.min(cropX + cropWidth, 100) * bitmap.width / 100;
+    var ymax = Math.min(cropY + cropHeight, 100) * bitmap.height / 100;
+    for(var x = xmin; x < xmax; x++)
     {
-        for(var y = 0; y < bitmap.height; y++)
+        for(var y = ymin; y < ymax; y++)
         {
             var pixel = new Color(bitmap.getPixel(x,y));
             histogram[Math.round((pixel.red + pixel.green + pixel.blue)/3)]++;
+            total++;
         }
     }
-    return histogram;
-}
-
-function computePercentile(histogram, percentile, total)
-{
+    
     var runningTotal = 0;
     var level = 0;
     for(level = 0; level < 256; level++)
@@ -590,16 +665,24 @@ function deflicker()
     for(var iteration = 0; iteration < iterations; iteration++)
     {
     	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
-    	$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
+    	//$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
 		//get target values from the first image
+		if(iteration > 0)
+		{
+			statusText.text = "Purge Cache";
+			for(var i = 0; i < count; i++)
+			{
+				app.purgeFolderCache(items[i]);
+				app.document.select(items[i]);
+			}
+		}
 		var thumb = items[0];
 		progress.value = 100 * 1 / (count + 1);
 		statusText.text = "Processing " + thumb.name + " (keyframe)";
-		var bitmap = (iteration == 0 ? thumb.core.preview.preview : new BitmapData(thumb.spec)).resize(previewSize);
-		var histogram = computeHistogram(bitmap);
-		var targetStart = computePercentile(histogram, percentile, bitmap.width * bitmap.height);
+		var bitmap = thumb.core.preview.preview;
+		var targetStart = computePercentile(bitmap, percentile);
 		var targetEnd = targetStart;
-    	$.writeln("keyframe " + thumb.name + ": " + targetStart);
+    	//$.writeln("keyframe " + thumb.name + ": " + targetStart);
 		var findNextKeyframe = function(index)
 		{
 			var nextKeyframe = index + 1;
@@ -612,10 +695,9 @@ function deflicker()
 			var thumb = items[nextKeyframe];
 			progress.value = 100 * (index + 2) / (count + 1);
 			statusText.text = "Processing " + thumb.name + " (keyframe)";
-			var bitmap = (iteration == 0 ? thumb.core.preview.preview : new BitmapData(thumb.spec)).resize(previewSize);
-			var histogram = computeHistogram(bitmap);
-			var result = computePercentile(histogram, percentile, bitmap.width * bitmap.height);
-			$.writeln("keyframe " + thumb.name + ": " + result);
+			var bitmap = thumb.core.preview.preview;
+			var result = computePercentile(bitmap, percentile);
+			//$.writeln("keyframe " + thumb.name + ": " + result);
 			return result;
 		}
 		targetEnd = findNextKeyframe(0);
@@ -633,9 +715,8 @@ function deflicker()
 			{
 				progress.value = 100 * (i + 2) / (count + 1);
 				statusText.text = "Processing " + thumb.name;
-				bitmap = (iteration == 0 ? thumb.core.preview.preview : new BitmapData(thumb.spec)).resize(previewSize);
-				histogram = computeHistogram(bitmap);
-				computed = computePercentile(histogram, percentile, bitmap.width * bitmap.height);
+				bitmap = thumb.core.preview.preview;
+				computed = computePercentile(bitmap, percentile);
 				
 				var xmp = new XMPMeta();
 				var offset = 0;
@@ -650,7 +731,7 @@ function deflicker()
 				var ev = convertToEV(target) - convertToEV(computed) + offset;
 				if(Math.abs(target - computed) > deflickerThreshold)
 					moreIterationsNeeded = true;
-				$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
+				//$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
 				xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
 				
 				// Write the packet back to the selected file
@@ -663,7 +744,11 @@ function deflicker()
 		if(!moreIterationsNeeded)
 			break;
     }
-    app.purgeFolderCache(items[0]);
+	for(var i = 0; i < count; i++)
+	{
+		app.purgeFolderCache(items[i]);
+		app.document.select(items[i]);
+	}
     if(moreIterationsNeeded)
     	alert("More Deflicker Iterations may be needed");
     progressWindow.hide();

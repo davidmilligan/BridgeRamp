@@ -35,7 +35,7 @@ function BrRamp()
 
 function loadXMPLibrary()
 {
-	// Load the XMP Script library
+    // Load the XMP Script library
     if( xmpLib == undefined ) 
     {
         if( Folder.fs == "Windows" )
@@ -71,35 +71,35 @@ BrRamp.prototype.run = function()
 
     rampCommand.onSelect = function(m)
     {
-    	try
-    	{
-    		runRamp();
+        try
+        {
+            runRamp();
         }
         catch(error)
         {
-        	alert(error);
+            alert(error);
         }
     };
     rampMultipleCommand.onSelect = function(m)
     {
-    	try
-    	{
-    		runRampMultiple();
+        try
+        {
+            runRampMultiple();
         }
         catch(error)
         {
-        	alert(error);
+            alert(error);
         }
     };
     deflickerCommand.onSelect = function(m)
     {
-    	try
-    	{
-    		runDeflickerMain();
+        try
+        {
+            runDeflickerMain();
         }
         catch(error)
         {
-        	alert(error);
+            alert(error);
         }
     };
 
@@ -141,13 +141,13 @@ BrRamp.prototype.canRun = function()
 }
 
 var allProperties = [
-	"Temperature", "Tint", 
-	"Exposure2012", "Contrast2012", "Highlights2012", "Shadows2012", "Whites2012", "Blacks2012",
-	"Clarity2012", "Vibrance", "Saturation",
-	"Sharpness", "SharpenRadius", "SharpenDetail", "SharpenEdgeMasking",
-	"ColorNoiseReduction", "ColorNoiseReductionDetail", "ColorNoiseReductionSmoothness",
-	"LuminanceSmoothing", "VignetteAmount", "ShadowTint",
-	"RedHue", "RedSaturation", "GreenHue", "GreenSaturation", "BlueHue", "BlueSaturation",
+    "Temperature", "Tint", 
+    "Exposure2012", "Contrast2012", "Highlights2012", "Shadows2012", "Whites2012", "Blacks2012",
+    "Clarity2012", "Vibrance", "Saturation",
+    "Sharpness", "SharpenRadius", "SharpenDetail", "SharpenEdgeMasking",
+    "ColorNoiseReduction", "ColorNoiseReductionDetail", "ColorNoiseReductionSmoothness",
+    "LuminanceSmoothing", "VignetteAmount", "ShadowTint",
+    "RedHue", "RedSaturation", "GreenHue", "GreenSaturation", "BlueHue", "BlueSaturation",
     "HueAdjustmentRed", "HueAdjustmentOrange", "HueAdjustmentYellow", "HueAdjustmentGreen", "HueAdjustmentAqua", "HueAdjustmentBlue", "HueAdjustmentPurple", "HueAdjustmentMagenta",
     "SaturationAdjustmentRed", "SaturationAdjustmentOrange", "SaturationAdjustmentYellow", "SaturationAdjustmentGreen", "SaturationAdjustmentAqua", "SaturationAdjustmentBlue", "SaturationAdjustmentPurple", "SaturationAdjustmentMagenta",
     "LuminanceAdjustmentRed", "LuminanceAdjustmentOrange", "LuminanceAdjustmentYellow", "LuminanceAdjustmentGreen", "LuminanceAdjustmentAqua", "LuminanceAdjustmentBlue", "LuminanceAdjustmentPurple", "LuminanceAdjustmentMagenta",
@@ -160,7 +160,7 @@ var allProperties = [
 
 function runRamp()
 {
-	var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
+    var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
             rampPanel: Panel { text: 'Ramp', \
                 propertyBox: DropDownList { }, \
@@ -188,7 +188,7 @@ function runRamp()
     var cancelButton = rampDialog.rightGroup.cancelButton;
     var propertyBox = rampDialog.leftGroup.rampPanel.propertyBox;
     for(var i = 0; i < allProperties.length; i++)
-    	propertyBox.add("Item", allProperties[i]);
+        propertyBox.add("Item", allProperties[i]);
    
     propertyBox.selection = 2;
     
@@ -201,8 +201,8 @@ function runRamp()
     cancelButton.onClick = function() { rampDialog.close(false);};
     propertyBox.onChange = function()
     {
-    	startText.text = getProperty(propertyBox.selection.text, 0);
-    	endText.text = getProperty(propertyBox.selection.text, app.document.selections.length - 1);
+        startText.text = getProperty(propertyBox.selection.text, 0);
+        endText.text = getProperty(propertyBox.selection.text, app.document.selections.length - 1);
     }
     propertyBox.onChange();
     
@@ -218,16 +218,16 @@ function runRamp()
 
 function getProperty(property, index)
 {
-	var thumb = app.document.selections[index];
-	var xmp =  new XMPMeta();
-	if(thumb.hasMetadata)
-	{
-		//load the xmp metadata
-		var md = thumb.synchronousMetadata;
-		xmp =  new XMPMeta(md.serialize());
-		return Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
-	}
-	return 0;
+    var thumb = app.document.selections[index];
+    var xmp =  new XMPMeta();
+    if(thumb.hasMetadata)
+    {
+        //load the xmp metadata
+        var md = thumb.synchronousMetadata;
+        xmp =  new XMPMeta(md.serialize());
+        return Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
+    }
+    return 0;
 }
 
 function applyRamp(property, startValue, endValue, additive)
@@ -268,12 +268,12 @@ var enabledSettings = null;
 
 function runRampMultiple()
 {
-	var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
+    var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'left', \
             settingsPanel: Panel { orientation: 'row', text: 'Settings', \
-            	group1: Group { orientation: 'column', alignChildren:'left' } \
-            	group2: Group { orientation: 'column', alignChildren:'left' } \
-            	group3: Group { orientation: 'column', alignChildren:'left' } \
+                group1: Group { orientation: 'column', alignChildren:'left' } \
+                group2: Group { orientation: 'column', alignChildren:'left' } \
+                group3: Group { orientation: 'column', alignChildren:'left' } \
             } \
         }, \
         rightGroup: Group { orientation: 'column', alignChildren:'fill', \
@@ -294,85 +294,85 @@ function runRampMultiple()
     
     if(enabledSettings == null)
     {
-    	enabledSettings = new Array();
-		for(var i = 0; i < allProperties.length; i++)
-		{
-			enabledSettings.push(allProperties[i]);
-		}
+        enabledSettings = new Array();
+        for(var i = 0; i < allProperties.length; i++)
+        {
+            enabledSettings.push(allProperties[i]);
+        }
     }
     
     for(var i = 0; i < allProperties.length; i++)
     {
-    	var checkbox = null;
-    	if(i < allProperties.length / 3)
-    	{
-    		checkbox = settingsPanel.group1.add("checkbox", undefined, allProperties[i]);
-    	}
-    	else if(i < allProperties.length * 2 / 3)
-    	{
-    		checkbox = settingsPanel.group2.add("checkbox", undefined, allProperties[i]);
-    	}
-    	else
-    	{
-    		checkbox = settingsPanel.group3.add("checkbox", undefined, allProperties[i]);
-    	}
-    	checkboxes[i] = checkbox;
-    	checkbox.value = indexOf(enabledSettings, allProperties[i]) >= 0;
-    	checkbox.onClick = function()
-		{
-			if(this.value)
-			{
-				if(indexOf(enabledSettings, this.text) == -1)
-					enabledSettings.push(this.text);
-			}
-			else
-			{
-				remove(enabledSettings, this.text);
-			}
-		};
+        var checkbox = null;
+        if(i < allProperties.length / 3)
+        {
+            checkbox = settingsPanel.group1.add("checkbox", undefined, allProperties[i]);
+        }
+        else if(i < allProperties.length * 2 / 3)
+        {
+            checkbox = settingsPanel.group2.add("checkbox", undefined, allProperties[i]);
+        }
+        else
+        {
+            checkbox = settingsPanel.group3.add("checkbox", undefined, allProperties[i]);
+        }
+        checkboxes[i] = checkbox;
+        checkbox.value = indexOf(enabledSettings, allProperties[i]) >= 0;
+        checkbox.onClick = function()
+        {
+            if(this.value)
+            {
+                if(indexOf(enabledSettings, this.text) == -1)
+                    enabledSettings.push(this.text);
+            }
+            else
+            {
+                remove(enabledSettings, this.text);
+            }
+        };
     }
     allButton.onClick = function() 
     {
-    	for(var i = 0; i < allProperties.length; i++)
-    	{
-    		checkboxes[i].value = true;
-    		checkboxes[i].onClick();
-    	}
+        for(var i = 0; i < allProperties.length; i++)
+        {
+            checkboxes[i].value = true;
+            checkboxes[i].onClick();
+        }
     }
     noneButton.onClick = function() 
     {
-    	for(var i = 0; i < allProperties.length; i++)
-    	{
-    		checkboxes[i].value = false;
-    		checkboxes[i].onClick();
-    	}
+        for(var i = 0; i < allProperties.length; i++)
+        {
+            checkboxes[i].value = false;
+            checkboxes[i].onClick();
+        }
     }
     okButton.onClick = function() { rampDialog.close(true); };
     cancelButton.onClick = function() { rampDialog.close(false);};
     
     if(rampDialog.show())
     {
-    	rampMultiple(enabledSettings);
+        rampMultiple(enabledSettings);
     }
 }
 
 function indexOf(array, item)
 {
-	for(var i = 0; i < array.length; i++)
-	{
-		if(array[i] == item)
-			return i;
-	}
-	return -1;
+    for(var i = 0; i < array.length; i++)
+    {
+        if(array[i] == item)
+            return i;
+    }
+    return -1;
 }
 
 function remove(array, item)
 {
-	var index = indexOf(array, item);
-	if(index >= 0)
-	{
-		array.splice(index, 1);
-	}
+    var index = indexOf(array, item);
+    if(index >= 0)
+    {
+        array.splice(index, 1);
+    }
 }
 
 function rampMultiple(enabledSettings)
@@ -381,83 +381,83 @@ function rampMultiple(enabledSettings)
     var currentKeyframe = 0;
     var nextKeyframe = 1;
     var targetStart = readSettings(currentKeyframe, enabledSettings);
-	for(nextKeyframe = 1; nextKeyframe < count - 1; nextKeyframe++)
-	{
-		if(app.document.selections[nextKeyframe].rating == keyframeRating)
-			break;
-	}
+    for(nextKeyframe = 1; nextKeyframe < count - 1; nextKeyframe++)
+    {
+        if(app.document.selections[nextKeyframe].rating == keyframeRating)
+            break;
+    }
     var targetEnd = readSettings(nextKeyframe, enabledSettings);
     for(var i = 1; i < count - 1; i++)
     {
-    	var thumb = app.document.selections[i];
+        var thumb = app.document.selections[i];
         if(thumb.rating == keyframeRating)
         {
-        	currentKeyframe = nextKeyframe;
-        	targetStart = targetEnd;
-        	nextKeyframe = i + 1;
-        	for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
-        	{
-        		if(app.document.selections[nextKeyframe].rating == keyframeRating)
-        			break;
-        	}
-        	targetEnd = readSettings(nextKeyframe, enabledSettings);
+            currentKeyframe = nextKeyframe;
+            targetStart = targetEnd;
+            nextKeyframe = i + 1;
+            for(nextKeyframe = i + 1; nextKeyframe < count - 1; nextKeyframe++)
+            {
+                if(app.document.selections[nextKeyframe].rating == keyframeRating)
+                    break;
+            }
+            targetEnd = readSettings(nextKeyframe, enabledSettings);
         }
         else
         {
-        	if(targetStart == null || targetEnd == null)
-        		break;
-        	
-			var xmp =  new XMPMeta();
-			if(thumb.hasMetadata)
-			{
-				//load the xmp metadata
-				var md = thumb.synchronousMetadata;
-				xmp =  new XMPMeta(md.serialize());
-			}
-			
-			for(var j = 0; j < enabledSettings.length; j ++)
-			{
-				var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
-				xmp.setProperty(XMPConst.NS_CAMERA_RAW, enabledSettings[j], value);
-			}
-			
-			// Write the packet back to the selected file
-			var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-	
-			// $.writeln(updatedPacket);
-			thumb.metadata = new Metadata(updatedPacket);
+            if(targetStart == null || targetEnd == null)
+                break;
+            
+            var xmp =  new XMPMeta();
+            if(thumb.hasMetadata)
+            {
+                //load the xmp metadata
+                var md = thumb.synchronousMetadata;
+                xmp =  new XMPMeta(md.serialize());
+            }
+            
+            for(var j = 0; j < enabledSettings.length; j ++)
+            {
+                var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
+                xmp.setProperty(XMPConst.NS_CAMERA_RAW, enabledSettings[j], value);
+            }
+            
+            // Write the packet back to the selected file
+            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+    
+            // $.writeln(updatedPacket);
+            thumb.metadata = new Metadata(updatedPacket);
         }
     }
 }
 
 function readSettings(keyframe, settings)
 {
-	var result = new Array(allProperties.length);
-	var thumb = app.document.selections[keyframe];
-	var xmp =  new XMPMeta();
-	if(thumb.hasMetadata)
-	{
-		try
-		{
-			//load the xmp metadata
-			var md = thumb.synchronousMetadata;
-			xmp =  new XMPMeta(md.serialize());
-				
-			for(var j = 0; j < settings.length; j ++)
-				result[j] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, settings[j]));
-		}
-		catch(err)
-		{
-			alert("Error Loading Metadata for keyframe: "+ thumb.name);
-			return null;
-		}
-	}
-	else
-	{
-		alert("Error Loading Metadata for keyframe: "+ thumb.name);
-		return null;
-	}
-	return result;
+    var result = new Array(allProperties.length);
+    var thumb = app.document.selections[keyframe];
+    var xmp =  new XMPMeta();
+    if(thumb.hasMetadata)
+    {
+        try
+        {
+            //load the xmp metadata
+            var md = thumb.synchronousMetadata;
+            xmp =  new XMPMeta(md.serialize());
+                
+            for(var j = 0; j < settings.length; j ++)
+                result[j] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, settings[j]));
+        }
+        catch(err)
+        {
+            alert("Error Loading Metadata for keyframe: "+ thumb.name);
+            return null;
+        }
+    }
+    else
+    {
+        alert("Error Loading Metadata for keyframe: "+ thumb.name);
+        return null;
+    }
+    return result;
 }
 
 
@@ -535,30 +535,30 @@ function runDeflickerMain()
     cropHeightText.onChange = function() { cropHeight = Math.min(this.text, 100); };
     percentileText.onChange = function() 
     { 
-    	percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); 
-    	percentileSlider.value = percentile * 100;
+        percentile = Math.min(0.99, Math.max(0.01, Number(percentileText.text))); 
+        percentileSlider.value = percentile * 100;
     };
     percentileSlider.onChange = function()
     {
-    	percentile = Math.min(0.99, Math.max(0.01, Number(percentileSlider.value / 100))); 
-    	percentileText.text = percentile;
+        percentile = Math.min(0.99, Math.max(0.01, Number(percentileSlider.value / 100))); 
+        percentileText.text = percentile;
     };
     var updateAll = function()
     {
-    	iterationsText.onChange();
-    	percentileText.onChange(); 
-    	previewSizeText.onChange();
-    	cropXText.onChange();
-    	cropYText.onChange();
-    	cropWidthText.onChange();
-    	cropHeightText.onChange();
+        iterationsText.onChange();
+        percentileText.onChange(); 
+        previewSizeText.onChange();
+        cropXText.onChange();
+        cropYText.onChange();
+        cropWidthText.onChange();
+        cropHeightText.onChange();
     }
     okButton.onClick = function() { updateAll(); deflickerDialog.close(true); };
     cancelButton.onClick = function() { deflickerDialog.close(false);};
     previewButton.onClick = function() 
     { 
-    	updateAll();
-    	percentileLabel.text = "Percentile Level: " + showPercentilePreview(); 
+        updateAll();
+        percentileLabel.text = "Percentile Level: " + showPercentilePreview(); 
     };
     
     if(deflickerDialog.show())
@@ -582,22 +582,22 @@ function showPercentilePreview()
     {
         for(var y = ymin; y < ymax; y+=2)
         {
-        	if(x == xmin || Math.abs(x - xmax) <= 2)
-        	{
+            if(x == xmin || Math.abs(x - xmax) <= 2)
+            {
                 output.setPixel(x, y, y % 8 < 4 ? "#000000" : "#ffffff");
                 output.setPixel(x, y + 1, y % 8 < 4 ? "#000000" : "#ffffff");
-        	}
-        	else if(y == ymin || Math.abs(y - ymax) <= 2)
-        	{
+            }
+            else if(y == ymin || Math.abs(y - ymax) <= 2)
+            {
                 output.setPixel(x, y, x % 8 < 4 ? "#000000" : "#ffffff");
                 output.setPixel(x + 1, y, x % 8 < 4 ?"#000000" : "#ffffff");
             }
             else
             {
-				var pixel = new Color(output.getPixel(x,y));
-				var lum = Math.round((pixel.red + pixel.green + pixel.blue)/3);
-				if(lum >= level - 4 && lum <= level + 4)
-					output.setPixel(x, y, "#ff0000");
+                var pixel = new Color(output.getPixel(x,y));
+                var lum = Math.round((pixel.red + pixel.green + pixel.blue)/3);
+                if(lum >= level - 4 && lum <= level + 4)
+                    output.setPixel(x, y, "#ff0000");
             }
         }
     }
@@ -605,12 +605,12 @@ function showPercentilePreview()
     var tempFile = File(tempFilename);
     if(tempFile.exists)
     {
-    	tempFile.remove();
+        tempFile.remove();
     }
     output.exportTo(tempFilename, 100);
     while(!tempFile.exists)
     {
-    	$.sleep(100);
+        $.sleep(100);
     }
     File(tempFilename).execute();
     return level;
@@ -660,97 +660,97 @@ function deflicker()
     app.synchronousMode = true; 
     var items = new Array(count);
     for(var i = 0; i < count; i++)
-		items[i] = app.document.selections[i];
+        items[i] = app.document.selections[i];
     
     for(var iteration = 0; iteration < iterations; iteration++)
     {
-    	initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
-    	//$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
-		//get target values from the first image
-		if(iteration > 0)
-		{
-			statusText.text = "Purge Cache";
-			for(var i = 0; i < count; i++)
-			{
-				app.purgeFolderCache(items[i]);
-				app.document.select(items[i]);
-			}
-		}
-		var thumb = items[0];
-		progress.value = 100 * 1 / (count + 1);
-		statusText.text = "Processing " + thumb.name + " (keyframe)";
-		var bitmap = thumb.core.preview.preview;
-		var targetStart = computePercentile(bitmap, percentile);
-		var targetEnd = targetStart;
-    	//$.writeln("keyframe " + thumb.name + ": " + targetStart);
-		var findNextKeyframe = function(index)
-		{
-			var nextKeyframe = index + 1;
-			for(nextKeyframe = index + 1; nextKeyframe < count - 1; nextKeyframe++)
-			{
-				if(items[nextKeyframe].rating == keyframeRating)
-					break;
-			}
-			//get target values from the last image
-			var thumb = items[nextKeyframe];
-			progress.value = 100 * (index + 2) / (count + 1);
-			statusText.text = "Processing " + thumb.name + " (keyframe)";
-			var bitmap = thumb.core.preview.preview;
-			var result = computePercentile(bitmap, percentile);
-			//$.writeln("keyframe " + thumb.name + ": " + result);
-			return result;
-		}
-		targetEnd = findNextKeyframe(0);
-		moreIterationsNeeded = false;
-		
-		for(var i = 1; i < count - 1; i++)
-		{
-			thumb = items[i];
-			if(thumb.rating == keyframeRating)
-			{
-				targetStart = targetEnd;
-				targetEnd = findNextKeyframe(i);
-			}
-			else
-			{
-				progress.value = 100 * (i + 2) / (count + 1);
-				statusText.text = "Processing " + thumb.name;
-				bitmap = thumb.core.preview.preview;
-				computed = computePercentile(bitmap, percentile);
-				
-				var xmp = new XMPMeta();
-				var offset = 0;
-				if(thumb.hasMetadata)
-				{
-					//load the xmp metadata
-					var md = thumb.synchronousMetadata;
-					var xmp =  new XMPMeta(md.serialize());
-					offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
-				}
-				var target =  (i / count) * (targetEnd - targetStart) + targetStart;
-				var ev = convertToEV(target) - convertToEV(computed) + offset;
-				if(Math.abs(target - computed) > deflickerThreshold)
-					moreIterationsNeeded = true;
-				//$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
-				xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
-				
-				// Write the packet back to the selected file
-				var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-		
-				// $.writeln(updatedPacket);
-				thumb.metadata = new Metadata(updatedPacket);
-			}
-		}
-		if(!moreIterationsNeeded)
-			break;
+        initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
+        //$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
+        //get target values from the first image
+        if(iteration > 0)
+        {
+            statusText.text = "Purge Cache";
+            for(var i = 0; i < count; i++)
+            {
+                app.purgeFolderCache(items[i]);
+                app.document.select(items[i]);
+            }
+        }
+        var thumb = items[0];
+        progress.value = 100 * 1 / (count + 1);
+        statusText.text = "Processing " + thumb.name + " (keyframe)";
+        var bitmap = thumb.core.preview.preview;
+        var targetStart = computePercentile(bitmap, percentile);
+        var targetEnd = targetStart;
+        //$.writeln("keyframe " + thumb.name + ": " + targetStart);
+        var findNextKeyframe = function(index)
+        {
+            var nextKeyframe = index + 1;
+            for(nextKeyframe = index + 1; nextKeyframe < count - 1; nextKeyframe++)
+            {
+                if(items[nextKeyframe].rating == keyframeRating)
+                    break;
+            }
+            //get target values from the last image
+            var thumb = items[nextKeyframe];
+            progress.value = 100 * (index + 2) / (count + 1);
+            statusText.text = "Processing " + thumb.name + " (keyframe)";
+            var bitmap = thumb.core.preview.preview;
+            var result = computePercentile(bitmap, percentile);
+            //$.writeln("keyframe " + thumb.name + ": " + result);
+            return result;
+        }
+        targetEnd = findNextKeyframe(0);
+        moreIterationsNeeded = false;
+        
+        for(var i = 1; i < count - 1; i++)
+        {
+            thumb = items[i];
+            if(thumb.rating == keyframeRating)
+            {
+                targetStart = targetEnd;
+                targetEnd = findNextKeyframe(i);
+            }
+            else
+            {
+                progress.value = 100 * (i + 2) / (count + 1);
+                statusText.text = "Processing " + thumb.name;
+                bitmap = thumb.core.preview.preview;
+                computed = computePercentile(bitmap, percentile);
+                
+                var xmp = new XMPMeta();
+                var offset = 0;
+                if(thumb.hasMetadata)
+                {
+                    //load the xmp metadata
+                    var md = thumb.synchronousMetadata;
+                    var xmp =  new XMPMeta(md.serialize());
+                    offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
+                }
+                var target =  (i / count) * (targetEnd - targetStart) + targetStart;
+                var ev = convertToEV(target) - convertToEV(computed) + offset;
+                if(Math.abs(target - computed) > deflickerThreshold)
+                    moreIterationsNeeded = true;
+                //$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
+                xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
+                
+                // Write the packet back to the selected file
+                var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+        
+                // $.writeln(updatedPacket);
+                thumb.metadata = new Metadata(updatedPacket);
+            }
+        }
+        if(!moreIterationsNeeded)
+            break;
     }
-	for(var i = 0; i < count; i++)
-	{
-		app.purgeFolderCache(items[i]);
-		app.document.select(items[i]);
-	}
+    for(var i = 0; i < count; i++)
+    {
+        app.purgeFolderCache(items[i]);
+        app.document.select(items[i]);
+    }
     if(moreIterationsNeeded)
-    	alert("More Deflicker Iterations may be needed");
+        alert("More Deflicker Iterations may be needed");
     progressWindow.hide();
 }
 

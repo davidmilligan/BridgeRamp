@@ -654,6 +654,8 @@ function deflicker()
     initializeProgress();
     var count = app.document.selections.length;
     var moreIterationsNeeded = false;
+    var currentKeyframe = 0;
+    var nextKeyframe = 0;
     app.synchronousMode = true; 
     var items = new Array(count);
     for(var i = 0; i < count; i++)
@@ -682,7 +684,7 @@ function deflicker()
         //$.writeln("keyframe " + thumb.name + ": " + targetStart);
         var findNextKeyframe = function(index)
         {
-            var nextKeyframe = index + 1;
+            nextKeyframe = index + 1;
             for(nextKeyframe = index + 1; nextKeyframe < count - 1; nextKeyframe++)
             {
                 if(items[nextKeyframe].rating == keyframeRating)
@@ -706,6 +708,7 @@ function deflicker()
             if(thumb.rating == keyframeRating)
             {
                 targetStart = targetEnd;
+                currentKeyframe = nextKeyframe;
                 targetEnd = findNextKeyframe(i);
             }
             else
@@ -724,7 +727,7 @@ function deflicker()
                     var xmp =  new XMPMeta(md.serialize());
                     offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
                 }
-                var target =  (i / count) * (targetEnd - targetStart) + targetStart;
+                var target =  ((i - currentKeyframe) / (nextKeyframe - currentKeyframe)) * (targetEnd - targetStart) + targetStart;
                 var ev = convertToEV(target) - convertToEV(computed) + offset;
                 if(Math.abs(target - computed) > deflickerThreshold)
                     moreIterationsNeeded = true;

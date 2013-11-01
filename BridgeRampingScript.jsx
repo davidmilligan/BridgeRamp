@@ -462,21 +462,6 @@ function rampMultiple(enabledSettings)
                 xmp =  new XMPMeta(md.serialize());
             }
             
-            if(rampGradientCorrections)
-            {
-                var count = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag);
-                for(var j = count; j < correctionsCount; j++)
-                {
-                    xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag, 0, null, XMPConst.ARRAY_IS_ORDERED);
-                    xmp.setProperty(XMPConst.NS_CAMERA_RAW,gradientCorrectionsTag + "[" + (j + 1) + "]/crs:What","Correction");
-                    xmp.setProperty(XMPConst.NS_CAMERA_RAW,gradientCorrectionsTag + "[" + (j + 1) + "]/crs:CorrectionActive","true");
-                    for(var k = count; k < masksCount[j]; k++)
-                    {
-                        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag + "[" + (j + 1) + "]/" + correctionMasksTag, 0, null, XMPConst.ARRAY_IS_ORDERED);
-                    }
-                }
-            }
-            
             for(var j = 0; j < settings.length; j ++)
             {
                 var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];

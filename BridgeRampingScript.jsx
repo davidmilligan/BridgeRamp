@@ -23,6 +23,7 @@ var cropX = 0;
 var cropY = 0;
 var cropWidth = 100;
 var cropHeight = 100;
+var rampGradientCorrections = true;
 
 function BrRamp()
 {
@@ -154,8 +155,14 @@ var allProperties = [
     "SplitToningShadowHue", "SplitToningShadowSaturation", "SplitToningHighlightHue", "SplitToningHighlightSaturation", "SplitToningBalance",
     "ParametricShadows", "ParametricDarks", "ParametricLights", "ParametricHighlights", "ParametricShadowSplit", "ParametricMidtoneSplit", "ParametricHighlightSplit"];
 
-    
-    
+var gradientCorrectionsTag = "GradientBasedCorrections";
+
+var gradientCorrectionsProperties = ["crs:CorrectionAmount", "crs:LocalExposure", "crs:LocalSaturation", "crs:LocalContrast", "crs:LocalClarity", "crs:LocalSharpness","crs:LocalBrightness","crs:LocalToningHue","crs:LocalToningSaturation","crs:LocalExposure2012","crs:LocalContrast2012","crs:LocalHighlights2012","crs:LocalShadows2012","crs:LocalClarity2012","crs:LocalLuminanceNoise","crs:LocalMoire","crs:LocalDefringe","crs:LocalTemperature","crs:LocalTint"];    
+
+var correctionMasksTag = "crs:CorrectionMasks";
+
+var correctionMasksProperties = ["crs:MaskValue","crs:ZeroX","crs:ZeroY","crs:FullX","crs:FullY"];
+
 /******************************************************************************/
 
 function runRamp()
@@ -271,8 +278,10 @@ function runRampMultiple()
     var rampDialog = new Window("dialog { orientation: 'row', text: 'Ramp ACR Settings', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'left', \
             settingsPanel: Panel { orientation: 'row', text: 'Settings', \
-                group1: Group { orientation: 'column', alignChildren:'left' } \
-                group2: Group { orientation: 'column', alignChildren:'left' } \
+                group1: Group { orientation: 'column', alignChildren:'left', \
+                    gbcCheckbox: Checkbox { text: 'GradientBasedCorrections' } \
+                }, \
+                group2: Group { orientation: 'column', alignChildren:'left' }, \
                 group3: Group { orientation: 'column', alignChildren:'left' } \
             } \
         }, \
@@ -285,6 +294,7 @@ function runRampMultiple()
         } \
     } ");
     
+    var gbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.gbcCheckbox;
     var settingsPanel = rampDialog.leftGroup.settingsPanel;
     var okButton = rampDialog.rightGroup.okButton;
     var cancelButton = rampDialog.rightGroup.cancelButton;
@@ -300,7 +310,8 @@ function runRampMultiple()
             enabledSettings.push(allProperties[i]);
         }
     }
-    
+    gbcCheckbox.value = rampGradientCorrections;
+    gbcCheckbox.onClick = function() { rampGradientCorrections = this.value; };
     for(var i = 0; i < allProperties.length; i++)
     {
         var checkbox = null;
@@ -338,6 +349,7 @@ function runRampMultiple()
             checkboxes[i].value = true;
             checkboxes[i].onClick();
         }
+        gbcCheckbox.value = true;
     }
     noneButton.onClick = function() 
     {
@@ -346,6 +358,7 @@ function runRampMultiple()
             checkboxes[i].value = false;
             checkboxes[i].onClick();
         }
+        gbcCheckbox.value = false;
     }
     okButton.onClick = function() { rampDialog.close(true); };
     cancelButton.onClick = function() { rampDialog.close(false);};
@@ -380,13 +393,47 @@ function rampMultiple(enabledSettings)
     var count = app.document.selections.length;
     var currentKeyframe = 0;
     var nextKeyframe = 1;
-    var targetStart = readSettings(currentKeyframe, enabledSettings);
+    var settings = new Array();
+    var correctionsCount = 0;
+    var masksCount = new Array();
+    for(var i = 0; i < enabledSettings.length; i++)
+        settings.push(enabledSettings[i]);
+            
+    if(rampGradientCorrections)
+    {
+        //generate all the property paths we need for gradient corrections
+        var thumb = app.document.selections[0];
+        var xmp =  new XMPMeta();
+        if(thumb.hasMetadata)
+        {
+            var md = thumb.synchronousMetadata;
+            xmp =  new XMPMeta(md.serialize());
+            correctionsCount = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag);
+            for(var j = 1; j<= correctionsCount; j++)
+            {
+                for(var i = 0; i < gradientCorrectionsProperties.length; i++)
+                {
+                    settings.push(gradientCorrectionsTag + "[" + j + "]/" + gradientCorrectionsProperties[i]);
+                }
+                masksCount.push(xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag + "[" + j + "]/" + correctionMasksTag));
+                for(var k = 1; k<= masksCount[j-1]; k++)
+                {
+                    for(var i = 0; i < correctionMasksProperties.length; i++)
+                    {
+                        settings.push(gradientCorrectionsTag + "[" + j + "]/" + correctionMasksTag + "[" + k + "]/" + correctionMasksProperties[i]);
+                    }
+                }
+            }
+        }
+    }
+    
+    var targetStart = readSettings(currentKeyframe, settings);
     for(nextKeyframe = 1; nextKeyframe < count - 1; nextKeyframe++)
     {
         if(app.document.selections[nextKeyframe].rating == keyframeRating)
             break;
     }
-    var targetEnd = readSettings(nextKeyframe, enabledSettings);
+    var targetEnd = readSettings(nextKeyframe, settings);
     for(var i = 1; i < count - 1; i++)
     {
         var thumb = app.document.selections[i];
@@ -415,10 +462,25 @@ function rampMultiple(enabledSettings)
                 xmp =  new XMPMeta(md.serialize());
             }
             
-            for(var j = 0; j < enabledSettings.length; j ++)
+            if(rampGradientCorrections)
+            {
+                var count = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag);
+                for(var j = count; j < correctionsCount; j++)
+                {
+                    xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag, 0, null, XMPConst.ARRAY_IS_ORDERED);
+                    xmp.setProperty(XMPConst.NS_CAMERA_RAW,gradientCorrectionsTag + "[" + (j + 1) + "]/crs:What","Correction");
+                    xmp.setProperty(XMPConst.NS_CAMERA_RAW,gradientCorrectionsTag + "[" + (j + 1) + "]/crs:CorrectionActive","true");
+                    for(var k = count; k < masksCount[j]; k++)
+                    {
+                        xmp.appendArrayItem(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag + "[" + (j + 1) + "]/" + correctionMasksTag, 0, null, XMPConst.ARRAY_IS_ORDERED);
+                    }
+                }
+            }
+            
+            for(var j = 0; j < settings.length; j ++)
             {
                 var value = (i - currentKeyframe) / (nextKeyframe - currentKeyframe) * (targetEnd[j] - targetStart[j]) + targetStart[j];
-                xmp.setProperty(XMPConst.NS_CAMERA_RAW, enabledSettings[j], value);
+                xmp.setProperty(XMPConst.NS_CAMERA_RAW, settings[j], value);
             }
             
             // Write the packet back to the selected file
@@ -432,7 +494,7 @@ function rampMultiple(enabledSettings)
 
 function readSettings(keyframe, settings)
 {
-    var result = new Array(allProperties.length);
+    var result = new Array(settings.length);
     var thumb = app.document.selections[keyframe];
     var xmp =  new XMPMeta();
     if(thumb.hasMetadata)

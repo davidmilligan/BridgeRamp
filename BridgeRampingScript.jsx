@@ -24,6 +24,7 @@ var cropY = 0;
 var cropWidth = 100;
 var cropHeight = 100;
 var rampGradientCorrections = true;
+var rampRadialCorrections = true;
 
 function BrRamp()
 {
@@ -157,11 +158,15 @@ var allProperties = [
 
 var gradientCorrectionsTag = "GradientBasedCorrections";
 
-var gradientCorrectionsProperties = ["crs:CorrectionAmount", "crs:LocalExposure", "crs:LocalSaturation", "crs:LocalContrast", "crs:LocalClarity", "crs:LocalSharpness","crs:LocalBrightness","crs:LocalToningHue","crs:LocalToningSaturation","crs:LocalExposure2012","crs:LocalContrast2012","crs:LocalHighlights2012","crs:LocalShadows2012","crs:LocalClarity2012","crs:LocalLuminanceNoise","crs:LocalMoire","crs:LocalDefringe","crs:LocalTemperature","crs:LocalTint"];    
+var correctionsProperties = ["crs:CorrectionAmount", "crs:LocalExposure", "crs:LocalSaturation", "crs:LocalContrast", "crs:LocalClarity", "crs:LocalSharpness","crs:LocalBrightness","crs:LocalToningHue","crs:LocalToningSaturation","crs:LocalExposure2012","crs:LocalContrast2012","crs:LocalHighlights2012","crs:LocalShadows2012","crs:LocalClarity2012","crs:LocalLuminanceNoise","crs:LocalMoire","crs:LocalDefringe","crs:LocalTemperature","crs:LocalTint"];    
 
 var correctionMasksTag = "crs:CorrectionMasks";
 
-var correctionMasksProperties = ["crs:MaskValue","crs:ZeroX","crs:ZeroY","crs:FullX","crs:FullY"];
+var gradientMasksProperties = ["crs:MaskValue","crs:ZeroX","crs:ZeroY","crs:FullX","crs:FullY"];
+
+var radialCorrectionsTag = "CircularGradientBasedCorrections";
+
+var radialMasksProperties = ["crs:MaskValue","crs:Top","crs:Left","crs:Bottom","crs:Right","crs:Angle","crs:Midpoint","crs:Roundness","crs:Feather"]
 
 /******************************************************************************/
 
@@ -279,7 +284,8 @@ function runRampMultiple()
         leftGroup: Group { orientation: 'column', alignChildren:'left', \
             settingsPanel: Panel { orientation: 'row', text: 'Settings', \
                 group1: Group { orientation: 'column', alignChildren:'left', \
-                    gbcCheckbox: Checkbox { text: 'GradientBasedCorrections' } \
+                    gbcCheckbox: Checkbox { text: 'GradientBasedCorrections' }, \
+                    rbcCheckbox: Checkbox { text: 'CircularGradientBasedCorrections' } \
                 }, \
                 group2: Group { orientation: 'column', alignChildren:'left' }, \
                 group3: Group { orientation: 'column', alignChildren:'left' } \
@@ -295,6 +301,7 @@ function runRampMultiple()
     } ");
     
     var gbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.gbcCheckbox;
+    var rbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.rbcCheckbox;
     var settingsPanel = rampDialog.leftGroup.settingsPanel;
     var okButton = rampDialog.rightGroup.okButton;
     var cancelButton = rampDialog.rightGroup.cancelButton;
@@ -312,14 +319,16 @@ function runRampMultiple()
     }
     gbcCheckbox.value = rampGradientCorrections;
     gbcCheckbox.onClick = function() { rampGradientCorrections = this.value; };
+    rbcCheckbox.value = rampRadialCorrections;
+    rbcCheckbox.onClick = function() { rampRadialCorrections = this.value; };
     for(var i = 0; i < allProperties.length; i++)
     {
         var checkbox = null;
-        if(i < allProperties.length / 3)
+        if((i + 2) < (allProperties.length + 2) / 3)
         {
             checkbox = settingsPanel.group1.add("checkbox", undefined, allProperties[i]);
         }
-        else if(i < allProperties.length * 2 / 3)
+        else if((i + 2) < (allProperties.length + 2) * 2 / 3)
         {
             checkbox = settingsPanel.group2.add("checkbox", undefined, allProperties[i]);
         }
@@ -399,7 +408,7 @@ function rampMultiple(enabledSettings)
     for(var i = 0; i < enabledSettings.length; i++)
         settings.push(enabledSettings[i]);
             
-    if(rampGradientCorrections)
+    if(rampGradientCorrections || rampRadialCorrections)
     {
         //generate all the property paths we need for gradient corrections
         var thumb = app.document.selections[0];
@@ -408,22 +417,29 @@ function rampMultiple(enabledSettings)
         {
             var md = thumb.synchronousMetadata;
             xmp =  new XMPMeta(md.serialize());
-            correctionsCount = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag);
-            for(var j = 1; j<= correctionsCount; j++)
+            var getCorrectionSettings = function(tag, maskProperties)
             {
-                for(var i = 0; i < gradientCorrectionsProperties.length; i++)
-                {
-                    settings.push(gradientCorrectionsTag + "[" + j + "]/" + gradientCorrectionsProperties[i]);
-                }
-                masksCount.push(xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, gradientCorrectionsTag + "[" + j + "]/" + correctionMasksTag));
-                for(var k = 1; k<= masksCount[j-1]; k++)
-                {
-                    for(var i = 0; i < correctionMasksProperties.length; i++)
-                    {
-                        settings.push(gradientCorrectionsTag + "[" + j + "]/" + correctionMasksTag + "[" + k + "]/" + correctionMasksProperties[i]);
-                    }
-                }
-            }
+            	correctionsCount = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, tag);
+				for(var j = 1; j<= correctionsCount; j++)
+				{
+					for(var i = 0; i < correctionsProperties.length; i++)
+					{
+						settings.push(tag + "[" + j + "]/" + correctionsProperties[i]);
+					}
+					masksCount.push(xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, tag + "[" + j + "]/" + correctionMasksTag));
+					for(var k = 1; k<= masksCount[j-1]; k++)
+					{
+						for(var i = 0; i < maskProperties.length; i++)
+						{
+							settings.push(tag + "[" + j + "]/" + correctionMasksTag + "[" + k + "]/" + maskProperties[i]);
+						}
+					}
+				}
+            };
+            if(rampGradientCorrections)
+            	getCorrectionSettings(gradientCorrectionsTag, gradientMasksProperties);
+            if(rampRadialCorrections)
+            	getCorrectionSettings(radialCorrectionsTag, radialMasksProperties);
         }
     }
     

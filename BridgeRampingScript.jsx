@@ -722,6 +722,8 @@ function deflicker()
                 app.document.select(items[i]);
             }
         }
+        currentKeyframe = 0;
+        nextKeyframe = 0;
         var thumb = items[0];
         progress.value = 100 * 1 / (count + 1);
         statusText.text = "Processing " + thumb.name + " (keyframe)";

@@ -477,7 +477,7 @@ function rampMultiple(enabledSettings)
                 if(app.document.selections[nextKeyframe].rating == keyframeRating)
                     break;
             }
-            targetEnd = readSettings(nextKeyframe, enabledSettings);
+            targetEnd = readSettings(nextKeyframe, settings);
         }
         else
         {

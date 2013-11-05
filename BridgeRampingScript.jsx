@@ -33,6 +33,7 @@ function BrRamp()
     this.rampMenuID = "brRampContextMenu";
     this.deflickerMenuID = "deflickerContextMenu";
     this.rampAllMenuID = "brRampMultiContextMenu";
+    this.backupMenuID = "brRampBackupContextMenu";
 }
 
 function loadXMPLibrary()
@@ -70,6 +71,7 @@ BrRamp.prototype.run = function()
     var rampCommand = MenuElement.create("command", "Ramp...", "at the end of Thumbnail", this.rampMenuID);
     var rampMultipleCommand = MenuElement.create("command", "Ramp Multiple...", "after " + this.rampMenuID, this.rampAllMenuID);
     var deflickerCommand = MenuElement.create("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
+    var backupCommand = MenuElement.create("command", "Backup XMP Sidecars...", "at the end of Thumbnail", this.backupMenuID);
 
     rampCommand.onSelect = function(m)
     {
@@ -104,6 +106,17 @@ BrRamp.prototype.run = function()
             alert(error);
         }
     };
+    backupCommand.onSelect = function(m)
+    {
+    	try
+    	{
+    		runBackupXMP();
+    	}
+        catch(error)
+        {
+            alert(error);
+        }
+    };
 
     var onDisplay = function()
     {
@@ -133,6 +146,7 @@ BrRamp.prototype.run = function()
     rampCommand.onDisplay = onDisplay;
     rampMultipleCommand.onDisplay = onDisplay;
     deflickerCommand.onDisplay = onDisplay;
+    backupCommand.onDisplay = onDisplay;
     
     return retval;
 }
@@ -166,7 +180,7 @@ var gradientMasksProperties = ["crs:MaskValue","crs:ZeroX","crs:ZeroY","crs:Full
 
 var radialCorrectionsTag = "CircularGradientBasedCorrections";
 
-var radialMasksProperties = ["crs:MaskValue","crs:Top","crs:Left","crs:Bottom","crs:Right","crs:Angle","crs:Midpoint","crs:Roundness","crs:Feather"]
+var radialMasksProperties = ["crs:MaskValue","crs:Top","crs:Left","crs:Bottom","crs:Right","crs:Angle","crs:Midpoint","crs:Roundness","crs:Feather"];
 
 /******************************************************************************/
 
@@ -833,6 +847,32 @@ function initializeProgress(title)
     progress = progressWindow.progressGroup.progress;
     progressWindow.progressGroup.cancelButton.onClick = function() { userCanceled = true; }
     progressWindow.show();
+}
+
+function runBackupXMP()
+{
+	var backupLocation = Folder.selectDialog ("Select a destination folder for the backup");
+	if(backupLocation != null)
+	{
+		var count = app.document.selections.length;
+		for(var i = 0; i < count; i++)
+		{
+			var thumb = app.document.selections[i];
+			var sourceXMP = File(thumb.spec.fullName.substr(0, thumb.spec.fullName.lastIndexOf(".")) + ".XMP");
+			if(!sourceXMP.exists)
+				sourceXMP = File(thumb.spec.fullName.substr(0, thumb.spec.fullName.lastIndexOf(".")) + ".xmp");
+			if(sourceXMP.exists)
+			{
+				var destination = File(backupLocation.fullName + "/" + sourceXMP.name);
+				if(destination.exists)
+				{
+					alert("Error: file(s) already exist in this destination");
+					break;
+				}
+				sourceXMP.copy(destination);
+			}
+		}
+	}
 }
 
 new BrRamp().run();

@@ -373,6 +373,7 @@ function runRampMultiple()
             checkboxes[i].onClick();
         }
         gbcCheckbox.value = true;
+        rbcCheckbox.value = true;
     }
     noneButton.onClick = function() 
     {
@@ -382,6 +383,7 @@ function runRampMultiple()
             checkboxes[i].onClick();
         }
         gbcCheckbox.value = false;
+        rbcCheckbox.value = false;
     }
     okButton.onClick = function() { rampDialog.close(true); };
     cancelButton.onClick = function() { rampDialog.close(false);};

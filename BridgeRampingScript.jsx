@@ -16,7 +16,7 @@
 var percentile = 0.7;
 var evCurveCoefficent = 2 / Math.log(2);
 var keyframeRating = 1;
-var iterations = 1;
+var iterations = 3;
 var previewSize = 200;
 var deflickerThreshold = 3;
 var cropX = 0;

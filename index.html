@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Bridge Ramp by davidmilligan</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/davidmilligan/BridgeRamp">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/davidmilligan/BridgeRamp/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/davidmilligan/BridgeRamp/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Bridge Ramp</h1>
+          <p>A script for deflickering and ramping ACR settings in Adobe Bridge</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/davidmilligan">davidmilligan</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+        <h2>
+<a name="bridge-ramp" class="anchor" href="#bridge-ramp"><span class="octicon octicon-link"></span></a>Bridge Ramp</h2>
+
+<p>This is an open source project written in javascript for Adobe Bridge. The main purpose of this script is to make up for many of Bridge's shortcomings when it comes to editing sequences of RAW images that are intended to be used for film/video, such as time-lapses and CinemaDNG RAW video sequences. Bridge/ACR (Adobe Camera Raw) was intended to be mainly a stills editor, but ACR is a powerful tool that can achieve superior results on raw video sequences as well.</p>
+
+<h3>
+<a name="motivation" class="anchor" href="#motivation"><span class="octicon octicon-link"></span></a>Motivation</h3>
+
+<p>Adobe After Effects and Premier Pro can import raw image sequences, but they give you no real control over the ACR settings used (such as exposure, contrast, saturation, white balance, etc.). This is where Bridge comes in. When importing, After Effects and Premier Pro will use any ACR settings that have been saved as metadata in XMP sidecar files for the images in the sequence. You can use Bridge to edit this metadata with the ACR dialog. The main shortcoming is that you cannot easily ramp values of various ACR settings overtime as is often necessary with time-lapse sequences.</p>
+
+<p>Another common problem with raw image sequences, especially time-lapses, is flicker. That is, small changes in exposure from frame to frame. It may be unavoidable in certain scenarios, such as using automatic exposure  tools (like Magic Lantern's <a href="http://www.magiclantern.fm/forum/index.php?topic=5200.0">AutoETTR</a>) for scenes with changing lighting conditions (like day to night time-lapses).</p>
+
+<h2>
+<a name="using-the-script" class="anchor" href="#using-the-script"><span class="octicon octicon-link"></span></a>Using the script</h2>
+
+<p>Download <a href="https://raw.github.com/davidmilligan/BridgeRamp/master/BridgeRampingScript.jsx">the script</a> and place it in </p>
+
+<p><code>%APPDATA%\Adobe\Bridge CC\Startup Scripts\</code> (Windows)</p>
+
+<p><code>~/Library/Application Support/Adobe/Bridge CC/Startup Scripts/</code> (Mac)</p>
+
+<h3>
+<a name="ramping" class="anchor" href="#ramping"><span class="octicon octicon-link"></span></a>Ramping</h3>
+
+<ol>
+<li>Select a sequence of images you wish to ramp</li>
+<li>Right Click &gt; Ramp...</li>
+<li>Select the setting you would like to ramp and the start and end value</li>
+<li>Click OK and the script will ramp the chosen the setting from the start value to the end value</li>
+</ol><p>OR</p>
+
+<ol>
+<li>Select a sequence of images you wish to ramp</li>
+<li>Optionally set additional keyframes by giving them a 1 star rating</li>
+<li>Right Click &gt; Ramp Multiple...</li>
+<li>Check the boxes for settings you would like to be ramped</li>
+<li>Click OK and all checked settings will be ramped from the value in the first image to the value in the last image (or its value from each keyframe to the next if you created keyframes in step 2)</li>
+</ol><p>Note: for Gradient or Radial corrections you must make sure that you 'synchronize' all the corrections for all images in the ACR dialog before running the ramp so that the appropriate metadata is initialized</p>
+
+<h3>
+<a name="deflickering" class="anchor" href="#deflickering"><span class="octicon octicon-link"></span></a>Deflickering</h3>
+
+<p>This script uses the principle of histogram matching to adjust the exposure value of each image to match a histogram percentile with that of a target image (keyframe).</p>
+
+<ol>
+<li>Select a sequence of images you wish to deflicker</li>
+<li>Optionally set additional keyframes by giving them a 1 star rating</li>
+<li>Right Click &gt; Deflicker...</li>
+<li>Select an appropriate histogram percentile, usually somewhere between 0.5 and 0.7. Use the 'preview' to see where this percentile falls on your image.</li>
+<li>Click OK and the deflicker will start processing images, a progress window will be shown</li>
+</ol><p>The default number of iterations is 3 which is usually enough to get accurate results. If the script detects that it can do no better at matching the histograms, it will stop after fewer than the number of iterations you might specify. If the script thinks it might still need more iterations it will give you a warning. You can simply run deflicker again to get more iterations.</p>
+
+<h3>
+<a name="more-info" class="anchor" href="#more-info"><span class="octicon octicon-link"></span></a>More Info</h3>
+
+<p>See <a href="http://www.magiclantern.fm/forum/index.php?topic=8850.0">this thread</a> in the Magic Lantern forum for more information.</p>
+
+<h2>
+<a name="special-thanks" class="anchor" href="#special-thanks"><span class="octicon octicon-link"></span></a>Special Thanks</h2>
+
+<p>To a1ex for help and advice on the deflickering algorithm, and to the Magic Lantern community for help testing and feedback during the initial development of this script.</p>
+
+<h2>
+<a name="bugs--feature-requests" class="anchor" href="#bugs--feature-requests"><span class="octicon octicon-link"></span></a>Bugs / Feature Requests</h2>
+
+<p>Please use the <a href="https://github.com/davidmilligan/BridgeRamp/issues">issue tracker</a> to submit bug reports and feature requests. Thanks.</p>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>

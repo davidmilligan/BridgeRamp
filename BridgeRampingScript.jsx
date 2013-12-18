@@ -743,7 +743,7 @@ function deflicker()
     for(var iteration = 0; iteration < iterations; iteration++)
     {
         initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
-        //$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
+        $.writeln("\n*** Iteration " + (iteration + 1) + " ***");
         //get target values from the first image
         if(iteration > 0)
         {
@@ -762,7 +762,7 @@ function deflicker()
         var bitmap = thumb.core.preview.preview.resize(previewSize);
         var targetStart = computePercentile(bitmap, percentile);
         var targetEnd = targetStart;
-        //$.writeln("keyframe " + thumb.name + ": " + targetStart);
+        $.writeln("keyframe " + thumb.name + ": " + targetStart);
         var findNextKeyframe = function(index)
         {
             nextKeyframe = index + 1;
@@ -777,7 +777,7 @@ function deflicker()
             statusText.text = "Processing " + thumb.name + " (keyframe)";
             var bitmap = thumb.core.preview.preview.resize(previewSize);
             var result = computePercentile(bitmap, percentile);
-            //$.writeln("keyframe " + thumb.name + ": " + result);
+            $.writeln("keyframe " + thumb.name + ": " + result);
             return result;
         }
         targetEnd = findNextKeyframe(0);
@@ -812,13 +812,13 @@ function deflicker()
                 var ev = convertToEV(target) - convertToEV(computed) + offset;
                 if(Math.abs(target - computed) > deflickerThreshold)
                     moreIterationsNeeded = true;
-                //$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
+                $.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
                 xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
                 
                 // Write the packet back to the selected file
                 var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
         
-                // $.writeln(updatedPacket);
+                $.writeln(updatedPacket);
                 thumb.metadata = new Metadata(updatedPacket);
             }
         }

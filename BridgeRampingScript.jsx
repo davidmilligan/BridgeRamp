@@ -807,6 +807,7 @@ function deflicker()
                     var md = thumb.synchronousMetadata;
                     var xmp =  new XMPMeta(md.serialize());
                     offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
+                    if(isNaN(offset)) offset = 0;
                 }
                 var target =  ((i - currentKeyframe) / (nextKeyframe - currentKeyframe)) * (targetEnd - targetStart) + targetStart;
                 var ev = convertToEV(target) - convertToEV(computed) + offset;
@@ -818,7 +819,7 @@ function deflicker()
                 // Write the packet back to the selected file
                 var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
         
-                $.writeln(updatedPacket);
+                //$.writeln(updatedPacket);
                 thumb.metadata = new Metadata(updatedPacket);
             }
         }

@@ -733,7 +733,7 @@ function getPreview(thumb, size)
 	if(thumb.core.preview.preview == null)
 	{
 		$.writeln("\npreview not ready, waiting...");
-		int timeout = 30;//30 seconds
+		var timeout = 30;//30 seconds
 		while(thumb.core.preview.preview == null)
 		{
 			$.sleep(1000);

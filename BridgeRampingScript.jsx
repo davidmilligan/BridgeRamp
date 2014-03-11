@@ -26,6 +26,10 @@ var cropHeight = 100;
 var rampGradientCorrections = true;
 var rampRadialCorrections = true;
 
+function debugPrint(str)
+{
+}
+
 function BrRamp()
 {
     this.requiredContext = "\tAdobe Bridge must be running.\n\tExecute against Bridge as the Target.\n";
@@ -274,7 +278,7 @@ function applyRamp(property, startValue, endValue, additive)
             if(additive)
             {
                 offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
-                //$.writeln(thumb.name + " offset: " + offset);
+                debugPrint(thumb.name + " offset: " + offset);
             }
         }
         var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
@@ -283,7 +287,7 @@ function applyRamp(property, startValue, endValue, additive)
         // Write the packet back to the selected file
         var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
 
-        // $.writeln(updatedPacket);
+        // debugPrint(updatedPacket);
         thumb.metadata = new Metadata(updatedPacket);
     }
 }
@@ -503,7 +507,7 @@ function rampMultiple(enabledSettings)
             // Write the packet back to the selected file
             var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
     
-            // $.writeln(updatedPacket);
+            // debugPrint(updatedPacket);
             thumb.metadata = new Metadata(updatedPacket);
         }
     }
@@ -682,7 +686,7 @@ function showPercentilePreview()
     }
     var tempFilename = Folder.temp + "/PercentilePreview.jpg";
     var tempFile = File(tempFilename);
-    $.writeln("temp file path: " + tempFile.fsName);
+    debugPrint("temp file path: " + tempFile.fsName);
     if(tempFile.exists)
     {
         tempFile.remove();
@@ -732,7 +736,7 @@ function getPreview(thumb, size)
 {
 	if(thumb.core.preview.preview == null)
 	{
-		$.writeln("\npreview not ready, waiting...");
+		debugPrint("\npreview not ready, waiting...");
 		var timeout = 30;//30 seconds
 		while(thumb.core.preview.preview == null)
 		{
@@ -764,7 +768,7 @@ function deflicker()
     for(var iteration = 0; iteration < iterations; iteration++)
     {
         initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
-        $.writeln("\n*** Iteration " + (iteration + 1) + " ***");
+        debugPrint("\n*** Iteration " + (iteration + 1) + " ***");
         //get target values from the first image
         if(iteration > 0)
         {
@@ -783,7 +787,7 @@ function deflicker()
         var bitmap = getPreview(thumb, previewSize);
         var targetStart = computePercentile(bitmap, percentile);
         var targetEnd = targetStart;
-        $.writeln("keyframe " + thumb.name + ": " + targetStart);
+        debugPrint("keyframe " + thumb.name + ": " + targetStart);
         var findNextKeyframe = function(index)
         {
             nextKeyframe = index + 1;
@@ -798,7 +802,7 @@ function deflicker()
             statusText.text = "Processing " + thumb.name + " (keyframe)";
             var bitmap = getPreview(thumb, previewSize);
             var result = computePercentile(bitmap, percentile);
-            $.writeln("keyframe " + thumb.name + ": " + result);
+            debugPrint("keyframe " + thumb.name + ": " + result);
             return result;
         }
         targetEnd = findNextKeyframe(0);
@@ -834,13 +838,13 @@ function deflicker()
                 var ev = convertToEV(target) - convertToEV(computed) + offset;
                 if(Math.abs(target - computed) > deflickerThreshold)
                     moreIterationsNeeded = true;
-                $.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
+                debugPrint(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
                 xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
                 
                 // Write the packet back to the selected file
                 var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
         
-                //$.writeln(updatedPacket);
+                debugPrint(updatedPacket);
                 thumb.metadata = new Metadata(updatedPacket);
             }
         }

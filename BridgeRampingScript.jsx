@@ -28,6 +28,7 @@ var rampRadialCorrections = true;
 
 function debugPrint(str)
 {
+    $.writeln(str);
 }
 
 function BrRamp()

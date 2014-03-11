@@ -692,7 +692,7 @@ function showPercentilePreview()
     {
         tempFile.remove();
     }
-    output.exportTo(tempFilename, 100);
+    output.exportTo(tempFile, 100);
     File(tempFilename).execute();
     return level;
 }

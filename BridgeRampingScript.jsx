@@ -2,6 +2,8 @@
 
 /* Copyright (C) 2013 David Milligan
  *
+ * With additions (C) 2014 by Paulo Jan
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 3
@@ -23,12 +25,11 @@ var cropX = 0;
 var cropY = 0;
 var cropWidth = 100;
 var cropHeight = 100;
+var usarPV2010 = false;
+var undoNiveles = 5;
+var guardarDatos = false;
 var rampGradientCorrections = true;
 var rampRadialCorrections = true;
-
-function debugPrint(str)
-{
-}
 
 function BrRamp()
 {
@@ -38,6 +39,7 @@ function BrRamp()
     this.deflickerMenuID = "deflickerContextMenu";
     this.rampAllMenuID = "brRampMultiContextMenu";
     this.backupMenuID = "brRampBackupContextMenu";
+    this.undoMenuID = "brUndoContextMenu";
 }
 
 function loadXMPLibrary()
@@ -76,6 +78,7 @@ BrRamp.prototype.run = function()
     var rampMultipleCommand = MenuElement.create("command", "Ramp Multiple...", "after " + this.rampMenuID, this.rampAllMenuID);
     var deflickerCommand = MenuElement.create("command", "Deflicker...", "at the end of Thumbnail", this.deflickerMenuID);
     var backupCommand = MenuElement.create("command", "Backup XMP Sidecars...", "at the end of Thumbnail", this.backupMenuID);
+    var undoCommand = MenuElement.create("command", "Undo Ramp/Deflicker", "at the end of Thumbnail", this.undoMenuID);
 
     rampCommand.onSelect = function(m)
     {
@@ -122,6 +125,18 @@ BrRamp.prototype.run = function()
         }
     };
 
+    undoCommand.onSelect = function(m) {
+        try
+            {
+                runUndo();
+            }
+            catch(error)
+            {
+                alert(error);
+            }        
+        
+        }
+
     var onDisplay = function()
     {
         try
@@ -151,6 +166,7 @@ BrRamp.prototype.run = function()
     rampMultipleCommand.onDisplay = onDisplay;
     deflickerCommand.onDisplay = onDisplay;
     backupCommand.onDisplay = onDisplay;
+    undoCommand.onDisplay = onDisplay;
     
     return retval;
 }
@@ -160,10 +176,9 @@ BrRamp.prototype.canRun = function()
     return BridgeTalk.appName == "bridge" && ! MenuElement.find(this.menuID);
 }
 
-var allProperties = [
+var commonProperties = [
     "Temperature", "Tint", 
-    "Exposure2012", "Contrast2012", "Highlights2012", "Shadows2012", "Whites2012", "Blacks2012",
-    "Clarity2012", "Vibrance", "Saturation",
+    "Vibrance", "Saturation",
     "Sharpness", "SharpenRadius", "SharpenDetail", "SharpenEdgeMasking",
     "ColorNoiseReduction", "ColorNoiseReductionDetail", "ColorNoiseReductionSmoothness",
     "LuminanceSmoothing", "VignetteAmount", "ShadowTint",
@@ -173,6 +188,11 @@ var allProperties = [
     "LuminanceAdjustmentRed", "LuminanceAdjustmentOrange", "LuminanceAdjustmentYellow", "LuminanceAdjustmentGreen", "LuminanceAdjustmentAqua", "LuminanceAdjustmentBlue", "LuminanceAdjustmentPurple", "LuminanceAdjustmentMagenta",
     "SplitToningShadowHue", "SplitToningShadowSaturation", "SplitToningHighlightHue", "SplitToningHighlightSaturation", "SplitToningBalance",
     "ParametricShadows", "ParametricDarks", "ParametricLights", "ParametricHighlights", "ParametricShadowSplit", "ParametricMidtoneSplit", "ParametricHighlightSplit"];
+
+var Properties2012 = ["Exposure2012", "Contrast2012", "Highlights2012", "Shadows2012", "Whites2012", "Blacks2012",
+    "Clarity2012"];
+   
+var Properties2010 = ["Exposure",  "FillLight", "HighlightRecovery", "Brightness", "Contrast", "Clarity", "Shadows"];
 
 var gradientCorrectionsTag = "GradientBasedCorrections";
 
@@ -194,7 +214,7 @@ function runRamp()
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
             rampPanel: Panel { text: 'Ramp', \
                 propertyBox: DropDownList { }, \
-                startGroup: Group { \
+                startGroup: Group { orientation: 'row', \
                     startLabel: StaticText { text: 'Start: ' }, \
                     startText: EditText { characters: 8, text: '0' }, \
                 }, \
@@ -202,8 +222,9 @@ function runRamp()
                     endLabel: StaticText { text: 'End: ' }, \
                     endText: EditText { characters: 8, text: '0' }, \
                 }, \
-                additiveGroup: Group{ \
-                    additiveCheckBox: Checkbox { text: 'Additive' }\
+                checkboxesGroup: Group{ orientation: 'row', \
+                    additiveCheckBox: Checkbox { text: 'Additive' }, \
+                    pv2010CheckBox: Checkbox { text: 'Use PV2010' } \
                 }, \
                 selectionLabel: StaticText { text: 'Selected Items: ' }, \
             } \
@@ -217,16 +238,35 @@ function runRamp()
     var okButton = rampDialog.rightGroup.okButton;
     var cancelButton = rampDialog.rightGroup.cancelButton;
     var propertyBox = rampDialog.leftGroup.rampPanel.propertyBox;
-    for(var i = 0; i < allProperties.length; i++)
-        propertyBox.add("Item", allProperties[i]);
-   
+ 
+    var pv2010CheckBox=rampDialog.leftGroup.rampPanel.checkboxesGroup.pv2010CheckBox;
+    
+    var allProperties = Properties2012.concat(commonProperties);
+    
+    rellenarPropiedades(propertyBox, allProperties);
+    
     propertyBox.selection = 2;
     
     rampDialog.leftGroup.rampPanel.selectionLabel.text += app.document.selections.length + " ";
     
     var startText = rampDialog.leftGroup.rampPanel.startGroup.startText;
     var endText = rampDialog.leftGroup.rampPanel.endGroup.endText
-    
+
+
+    pv2010CheckBox.onClick=function ()
+        {
+        propertyBox.removeAll();
+        if (pv2010CheckBox.value == true) {
+            allProperties = Properties2010.concat(commonProperties);
+            }
+        else {
+            allProperties = Properties2012.concat(commonProperties);
+            }
+        //$.writeln("Meeeept: " + allProperties.length);
+        rellenarPropiedades(propertyBox, allProperties);
+        propertyBox.selection = 2;
+        }
+
     okButton.onClick = function() { rampDialog.close(true); };
     cancelButton.onClick = function() { rampDialog.close(false);};
     propertyBox.onChange = function()
@@ -242,9 +282,17 @@ function runRamp()
             propertyBox.selection.text, 
             Number(startText.text), 
             Number(endText.text), 
-            rampDialog.leftGroup.rampPanel.additiveGroup.additiveCheckBox.value);
+            rampDialog.leftGroup.rampPanel.checkboxesGroup.additiveCheckBox.value);
     }
 }
+
+function rellenarPropiedades(dropDownARellenar, lista)
+    {
+     for(var i = 0; i < lista.length; i++) {
+        dropDownARellenar.add("Item", lista[i]);
+        }
+    //return true;
+    }
 
 function getProperty(property, index)
 {
@@ -262,6 +310,8 @@ function getProperty(property, index)
 
 function applyRamp(property, startValue, endValue, additive)
 {
+    guardaDatosUndo(Array(property), "Ramp");
+
     var count = app.document.selections.length;
     for(var i = 0; i < count; i++)
     {
@@ -278,7 +328,7 @@ function applyRamp(property, startValue, endValue, additive)
             if(additive)
             {
                 offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
-                debugPrint(thumb.name + " offset: " + offset);
+                //$.writeln(thumb.name + " offset: " + offset);
             }
         }
         var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
@@ -287,7 +337,7 @@ function applyRamp(property, startValue, endValue, additive)
         // Write the packet back to the selected file
         var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
 
-        // debugPrint(updatedPacket);
+        // $.writeln(updatedPacket);
         thumb.metadata = new Metadata(updatedPacket);
     }
 }
@@ -318,6 +368,8 @@ function runRampMultiple()
         } \
     } ");
     
+    var allProperties = Properties2012.concat(commonProperties);
+
     var gbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.gbcCheckbox;
     var rbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.rbcCheckbox;
     var settingsPanel = rampDialog.leftGroup.settingsPanel;
@@ -419,6 +471,8 @@ function remove(array, item)
 
 function rampMultiple(enabledSettings)
 {
+    guardaDatosUndo(enabledSettings, "Ramp Multiple");
+    
     var count = app.document.selections.length;
     var currentKeyframe = 0;
     var nextKeyframe = 1;
@@ -507,7 +561,7 @@ function rampMultiple(enabledSettings)
             // Write the packet back to the selected file
             var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
     
-            // debugPrint(updatedPacket);
+            // $.writeln(updatedPacket);
             thumb.metadata = new Metadata(updatedPacket);
         }
     }
@@ -575,6 +629,10 @@ function runDeflickerMain()
                     iterationsLabel: StaticText { text: 'Max Iterations: ' }, \
                     iterationsText: EditText { characters: 3, text: '1', helpTip: 'Maximum number of deflicker passes to run' }, \
                 }, \
+                checkboxesGroup: Group { orientation: 'column', alignChildren: 'left', \
+                    pv2010Checkbox: Checkbox { text: 'Use PV2010' }, \
+                    guardarDatosCheckbox: Checkbox { text: 'Store data in external file' } \
+                }, \
                 selectionLabel: StaticText { text: 'Selected Items: ???????' }, \
                 percentileLabel: StaticText { text: 'Percentile Level: ???????' }, \
             } \
@@ -599,6 +657,10 @@ function runDeflickerMain()
     var percentileSlider = deflickerDialog.leftGroup.deflickerPanel.percentileGroup.percentileSlider;
     var percentileLabel = deflickerDialog.leftGroup.deflickerPanel.percentileLabel;
     var iterationsText = deflickerDialog.leftGroup.deflickerPanel.iterationsGroup.iterationsText;
+    var pv2010Checkbox=deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.pv2010Checkbox;
+    var guardarDatosCheckbox = deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.guardarDatosCheckbox;
+    //$.writeln("Moooo: " + guardarDatosCheckbox);
+    //$.writeln("Moooo: " + okButton);
     previewHistogram = null;
     
     deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text = "Selected Items: " + app.document.selections.length;
@@ -610,6 +672,8 @@ function runDeflickerMain()
     cropYText.text = cropY;
     cropWidthText.text = cropWidth;
     cropHeightText.text = cropHeight;
+    pv2010Checkbox.onClick = function() { usarPV2010 = this.value; }
+    guardarDatosCheckbox.onClick = function() { guardarDatos = this.value; }
     iterationsText.onChange = function() { iterations = Number(this.text); };
     previewSizeText.onChange = function() { previewSize = Number(this.text); };
     cropXText.onChange = function() { cropX = Math.max(this.text, 0); };
@@ -635,6 +699,8 @@ function runDeflickerMain()
         cropYText.onChange();
         cropWidthText.onChange();
         cropHeightText.onChange();
+        pv2010Checkbox.onClick();
+        guardarDatosCheckbox.onClick();
     }
     okButton.onClick = function() { updateAll(); deflickerDialog.close(true); };
     cancelButton.onClick = function() { deflickerDialog.close(false);};
@@ -686,7 +752,7 @@ function showPercentilePreview()
     }
     var tempFilename = Folder.temp + "/PercentilePreview.jpg";
     var tempFile = File(tempFilename);
-    debugPrint("temp file path: " + tempFile.fsName);
+    //$.writeln("temp file path: " + tempFile.fsName);
     if(tempFile.exists)
     {
         tempFile.remove();
@@ -732,43 +798,29 @@ function computePercentile(bitmap, percentile)
     return 255;
 }
 
-function getPreview(thumb, size)
-{
-	if(thumb.core.preview.preview == null)
-	{
-		debugPrint("\npreview not ready, waiting...");
-		var timeout = 30;//30 seconds
-		while(thumb.core.preview.preview == null)
-		{
-			$.sleep(1000);
-			timeout--;
-			if(timeout < 0)
-				break;
-		}
-	}
-	
-	if(thumb.core.preview.preview != null)
-		return thumb.core.preview.preview.resize(size);
-	else
-		throw "Error: preview data not available for thumbnail";
-}
-
 function deflicker()
 {
     initializeProgress();
+    if (usarPV2010 == true) {   var exposureEnXMP = 'Exposure';  }
+    else { var exposureEnXMP = 'Exposure2012';   }
+    
+    guardaDatosUndo(Array(exposureEnXMP), "Deflicker");
+    
     var count = app.document.selections.length;
     var moreIterationsNeeded = false;
     var currentKeyframe = 0;
     var nextKeyframe = 0;
     app.synchronousMode = true; 
     var items = new Array(count);
+    var datosOriginales=new Array(count);
+    var datosAGuardar=new Array(count);
     for(var i = 0; i < count; i++)
         items[i] = app.document.selections[i];
     
     for(var iteration = 0; iteration < iterations; iteration++)
     {
         initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
-        debugPrint("\n*** Iteration " + (iteration + 1) + " ***");
+        //$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
         //get target values from the first image
         if(iteration > 0)
         {
@@ -779,15 +831,29 @@ function deflicker()
                 app.document.select(items[i]);
             }
         }
+        else {
+            for (var i=0; i < count; i++) {
+                var xmp = new XMPMeta();
+                var thumb = items[i];
+                if(thumb.hasMetadata)
+                {
+                    //load the xmp metadata
+                    var md = thumb.synchronousMetadata;
+                    var xmp =  new XMPMeta(md.serialize());
+                    datosOriginales[i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP));
+                    //$.writeln("Mooooo: " + datosOriginales[i]);
+                    }
+                }
+         }
         currentKeyframe = 0;
         nextKeyframe = 0;
         var thumb = items[0];
         progress.value = 100 * 1 / (count + 1);
         statusText.text = "Processing " + thumb.name + " (keyframe)";
-        var bitmap = getPreview(thumb, previewSize);
+        var bitmap = thumb.core.preview.preview.resize(previewSize);
         var targetStart = computePercentile(bitmap, percentile);
         var targetEnd = targetStart;
-        debugPrint("keyframe " + thumb.name + ": " + targetStart);
+        //$.writeln("keyframe " + thumb.name + ": " + targetStart);
         var findNextKeyframe = function(index)
         {
             nextKeyframe = index + 1;
@@ -800,9 +866,9 @@ function deflicker()
             var thumb = items[nextKeyframe];
             progress.value = 100 * (index + 2) / (count + 1);
             statusText.text = "Processing " + thumb.name + " (keyframe)";
-            var bitmap = getPreview(thumb, previewSize);
+            var bitmap = thumb.core.preview.preview.resize(previewSize);
             var result = computePercentile(bitmap, percentile);
-            debugPrint("keyframe " + thumb.name + ": " + result);
+            //$.writeln("keyframe " + thumb.name + ": " + result);
             return result;
         }
         targetEnd = findNextKeyframe(0);
@@ -821,7 +887,7 @@ function deflicker()
             {
                 progress.value = 100 * (i + 2) / (count + 1);
                 statusText.text = "Processing " + thumb.name;
-                bitmap = getPreview(thumb, previewSize);
+                bitmap = thumb.core.preview.preview.resize(previewSize);
                 computed = computePercentile(bitmap, percentile);
                 
                 var xmp = new XMPMeta();
@@ -831,20 +897,20 @@ function deflicker()
                     //load the xmp metadata
                     var md = thumb.synchronousMetadata;
                     var xmp =  new XMPMeta(md.serialize());
-                    offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012'));
-                    if(isNaN(offset)) offset = 0;
+                    offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP));
                 }
                 var target =  ((i - currentKeyframe) / (nextKeyframe - currentKeyframe)) * (targetEnd - targetStart) + targetStart;
                 var ev = convertToEV(target) - convertToEV(computed) + offset;
                 if(Math.abs(target - computed) > deflickerThreshold)
                     moreIterationsNeeded = true;
-                debugPrint(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
-                xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
+                //$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
+                xmp.setProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP, ev)
+                datosAGuardar[i]=ev;
                 
                 // Write the packet back to the selected file
                 var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
         
-                debugPrint(updatedPacket);
+                // $.writeln(updatedPacket);
                 thumb.metadata = new Metadata(updatedPacket);
             }
         }
@@ -856,10 +922,65 @@ function deflicker()
         app.purgeFolderCache(items[i]);
         app.document.select(items[i]);
     }
+
+    if (guardarDatos == true) {
+        var todosLosThumbs=cogerTodosLosThumbsEnCarpeta();
+        var seqOffset=buscaSeqOffset(todosLosThumbs, items[0]);
+ 
+        for(var i = 0; i < count; i++)
+        {
+            app.document.select(items[i]);
+            datosAGuardar[i] = datosAGuardar[i] - datosOriginales[i];
+            }
+
+        datosAGuardar[0]=0;
+        datosAGuardar[count - 1]=0;
+
+        var json={
+            "offset": seqOffset,
+            "evValues" : datosAGuardar
+            };
+        var jsonFile=new File(app.document.presentationPath + "/deFlickerdata.json");
+        jsonFile.open("w");
+        jsonFile.write(json.toSource());
+        jsonFile.close();
+        }
+  
     if(moreIterationsNeeded)
         alert("More Deflicker Iterations may be needed");
     progressWindow.hide();
 }
+
+
+function buscaSeqOffset(todos, inicioSeleccion) {
+    var nombre=inicioSeleccion.name;
+    for (i=0; i < todos.length; i++) {
+        if (todos[i].name == nombre) { return i; }
+        }
+    //Algo muy raro ha pasado aquí... ¡¡Las fotos seleccionadas no están en la carpeta!!
+    return false;
+    }
+
+
+function cogerTodosLosThumbsEnCarpeta() {
+    
+    var count = app.document.selections.length;
+    var tempThumbs=Array();
+    for (i=0; i < count; i++) {
+        tempThumbs[i]=app.document.selections[i];
+        }
+    
+    app.document.selectAll();
+    var todosLosThumbs=app.document.getSelection("cr2");
+    app.document.deselectAll();
+    
+    for (i=0; i < count; i++) {
+        app.document.select(tempThumbs[i]);
+        }
+    
+    return todosLosThumbs;
+    }
+
 
 function initializeProgress(title)
 {
@@ -902,5 +1023,192 @@ function runBackupXMP()
 		}
 	}
 }
+
+
+function runUndo() {
+
+    var jsonFile=new File(app.document.presentationPath + "/undoData.json");
+
+    if (jsonFile.exists) {
+        jsonFile.open("r");
+        var todosLosDatos=eval(jsonFile.read());
+        jsonFile.close();
+        }
+    else { return false; }
+
+    if (todosLosDatos.length == 0) { return false; }
+
+    var undoDialog = new Window("dialog { orientation: 'row', text: 'Undo Ramp/Deflicker', alignChildren:'top', \
+        leftGroup: Group { orientation: 'column', alignChildren:'fill', \
+            undoPanel: Panel { text: 'Previous actions', \
+                propertyBox: DropDownList { }, \
+            } \
+        }, \
+        rightGroup: Group { orientation: 'column', alignChildren:'fill', \
+            okButton: Button { text: 'OK' }, \
+            cancelButton: Button { text: 'Cancel' } \
+        } \
+    } ");
+
+    var okButton = undoDialog.rightGroup.okButton;
+    var cancelButton = undoDialog.rightGroup.cancelButton;
+    var propertyBox = undoDialog.leftGroup.undoPanel.propertyBox;
+
+    var count=todosLosDatos.length;
+    
+    for (i=0; i < count; i++) {
+        var item=todosLosDatos[i];
+        propertyBox.add("Item", "Undo " + item["descripcion"]);
+        
+        }
+    propertyBox.selection = count - 1;
+
+    okButton.onClick = function() { undoDialog.close(true); };
+    cancelButton.onClick = function() { undoDialog.close(false);};
+    
+    if(undoDialog.show())
+    {
+        //$.writeln("MOOOOOO: " + propertyBox.selection.text);
+        Undo(Number(propertyBox.selection));
+        }
+    }
+
+
+
+function guardaDatosUndo(propiedadesACambiar, accion) {
+    //"propiedades" es un array de las propiedades que vamos a modificar. Con propósitos únicamente informativos
+    
+    var todosLosThumbs=cogerTodosLosThumbsEnCarpeta();
+    var seqOffset=buscaSeqOffset(todosLosThumbs, app.document.selections[0]);
+
+    var allProperties = commonProperties.concat(Properties2010, Properties2012);
+    var numAllProperties=allProperties.length;
+    
+    var numPropiedadesACambiar=propiedadesACambiar.length;
+    if (numPropiedadesACambiar > 3) {
+        numPropiedadesACambiar = 4;
+        propiedadesACambiar[3] = "etc.";
+        }
+    
+    var count = app.document.selections.length;
+    var undoObject={
+        "offset": seqOffset,
+        "descripcion": accion + " ("
+        }
+
+    for (i=0; i < numPropiedadesACambiar; i++) {
+        undoObject["descripcion"] += (propiedadesACambiar[i] + " ");
+        }
+    undoObject["descripcion"] += ")";
+
+    for (i=0; i < numAllProperties; i++) {
+        undoObject[allProperties[i]] = Array();
+        }
+
+    for (i=0; i < count; i++) {
+        var thumb=app.document.selections[i];
+
+        var xmp =  new XMPMeta();
+        if(thumb.hasMetadata)
+           {
+             //load the xmp metadata
+            var md = thumb.synchronousMetadata;
+            xmp =  new XMPMeta(md.serialize());
+            for (j=0; j < numAllProperties; j++) {
+                var p = allProperties[j];
+                undoObject[p][i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, allProperties[j]));
+                }
+            }
+        }
+
+    guardaADiscoUndo(undoObject);
+    }
+
+
+function guardaADiscoUndo(objeto) {
+    var jsonFile=new File(app.document.presentationPath + "/undoData.json");
+    if (jsonFile.exists) {
+        jsonFile.open("r");
+        var todosLosDatos=eval(jsonFile.read());
+        jsonFile.close();
+        }
+    else {
+        var todosLosDatos=Array();
+        }
+    
+    todosLosDatos.push(objeto);
+    if (todosLosDatos.length > undoNiveles) {
+        todosLosDatos.shift();
+        }
+
+    jsonFile.open("w");
+    jsonFile.write(todosLosDatos.toSource());
+    jsonFile.close();
+    }
+
+
+function Undo(num) {
+    var jsonFile=new File(app.document.presentationPath + "/undoData.json");
+    if (jsonFile.exists) {
+        jsonFile.open("r");
+        var todosLosDatos=eval(jsonFile.read());
+        jsonFile.close();
+        }
+    else { return false; }
+    
+    var datosARestaurar=todosLosDatos[num];
+    var offset=datosARestaurar["offset"];
+    
+    var todosLosThumbs=cogerTodosLosThumbsEnCarpeta();
+    var count=todosLosThumbs.length;
+
+    //Dejamos en el objeto sólo los parámetros a restaurar
+    delete datosARestaurar["offset"];
+    delete datosARestaurar["descripcion"];
+
+    for (i = offset; i < count; i++) {
+        
+        var thumb=todosLosThumbs[i];
+        
+         var xmp =  new XMPMeta();
+            if(thumb.hasMetadata)
+            {
+                //load the xmp metadata
+                var md = thumb.synchronousMetadata;
+                xmp =  new XMPMeta(md.serialize());
+            }
+            
+            for (var parametro in datosARestaurar) {
+                var value=datosARestaurar[parametro][i - offset];
+                xmp.setProperty(XMPConst.NS_CAMERA_RAW, parametro, value);
+               }
+            
+            // Write the packet back to the selected file
+            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+
+            // $.writeln(updatedPacket);
+            thumb.metadata = new Metadata(updatedPacket);
+        }
+
+    for (var i = offset; i < count; i++)
+            {
+                app.purgeFolderCache(todosLosThumbs[i]);
+                app.document.select(todosLosThumbs[i]);
+            }
+
+
+    //Borrar los Undos ya usados
+    var nuevosDatos=Array();
+    var numDatosActuales=todosLosDatos.length;
+
+    for (i=0; i < num; i++) {
+        nuevosDatos[i]=todosLosDatos[i];
+        }
+
+    jsonFile.open("w");
+    jsonFile.write(nuevosDatos.toSource());
+    jsonFile.close();
+    }
+
 
 new BrRamp().run();

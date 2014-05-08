@@ -842,7 +842,7 @@ function deflicker()
                 xmp.setProperty(XMPConst.NS_CAMERA_RAW, 'Exposure2012', ev)
                 
                 // Write the packet back to the selected file
-                var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+                var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
         
                 debugPrint(updatedPacket);
                 thumb.metadata = new Metadata(updatedPacket);

@@ -2,8 +2,6 @@
 
 /* Copyright (C) 2013 David Milligan
  *
- * With additions (C) 2014 by Paulo Jan
- *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 3
@@ -25,9 +23,9 @@ var cropX = 0;
 var cropY = 0;
 var cropWidth = 100;
 var cropHeight = 100;
-var usarPV2010 = false;
-var undoNiveles = 5;
-var guardarDatos = false;
+var usePV2010 = false;
+var undoLevels = 5;
+var saveData = false;
 var rampGradientCorrections = true;
 var rampRadialCorrections = true;
 
@@ -224,7 +222,7 @@ function runRamp()
                 }, \
                 checkboxesGroup: Group{ orientation: 'row', \
                     additiveCheckBox: Checkbox { text: 'Additive' }, \
-                    pv2010CheckBox: Checkbox { text: 'Use PV2010' } \
+                    pv2010CheckBox: Checkbox { text: 'Usar PV2010' } \
                 }, \
                 selectionLabel: StaticText { text: 'Selected Items: ' }, \
             } \
@@ -243,9 +241,9 @@ function runRamp()
     
     var allProperties = Properties2012.concat(commonProperties);
     
-    rellenarPropiedades(propertyBox, allProperties);
+    fillProperties(propertyBox, allProperties);
     
-    propertyBox.selection = 2;
+    propertyBox.selection = 0;
     
     rampDialog.leftGroup.rampPanel.selectionLabel.text += app.document.selections.length + " ";
     
@@ -263,7 +261,7 @@ function runRamp()
             allProperties = Properties2012.concat(commonProperties);
             }
         //$.writeln("Meeeept: " + allProperties.length);
-        rellenarPropiedades(propertyBox, allProperties);
+        fillProperties(propertyBox, allProperties);
         propertyBox.selection = 2;
         }
 
@@ -278,6 +276,7 @@ function runRamp()
     
     if(rampDialog.show())
     {
+        //$.writeln("MOOOOOO: " + propertyBox.selection.text);
         applyRamp(
             propertyBox.selection.text, 
             Number(startText.text), 
@@ -286,10 +285,10 @@ function runRamp()
     }
 }
 
-function rellenarPropiedades(dropDownARellenar, lista)
+function fillProperties(dropDownToBeFilled, list)
     {
-     for(var i = 0; i < lista.length; i++) {
-        dropDownARellenar.add("Item", lista[i]);
+     for(var i = 0; i < list.length; i++) {
+        dropDownToBeFilled.add("Item", list[i]);
         }
     //return true;
     }
@@ -310,7 +309,7 @@ function getProperty(property, index)
 
 function applyRamp(property, startValue, endValue, additive)
 {
-    guardaDatosUndo(Array(property), "Ramp");
+    saveUndoData(Array(property), "Ramp");
 
     var count = app.document.selections.length;
     for(var i = 0; i < count; i++)
@@ -471,7 +470,7 @@ function remove(array, item)
 
 function rampMultiple(enabledSettings)
 {
-    guardaDatosUndo(enabledSettings, "Ramp Multiple");
+    saveUndoData(enabledSettings, "Ramp Multiple");
     
     var count = app.document.selections.length;
     var currentKeyframe = 0;
@@ -631,7 +630,7 @@ function runDeflickerMain()
                 }, \
                 checkboxesGroup: Group { orientation: 'column', alignChildren: 'left', \
                     pv2010Checkbox: Checkbox { text: 'Use PV2010' }, \
-                    guardarDatosCheckbox: Checkbox { text: 'Store data in external file' } \
+                    saveDataCheckbox: Checkbox { text: 'Save data in external file' } \
                 }, \
                 selectionLabel: StaticText { text: 'Selected Items: ???????' }, \
                 percentileLabel: StaticText { text: 'Percentile Level: ???????' }, \
@@ -658,8 +657,8 @@ function runDeflickerMain()
     var percentileLabel = deflickerDialog.leftGroup.deflickerPanel.percentileLabel;
     var iterationsText = deflickerDialog.leftGroup.deflickerPanel.iterationsGroup.iterationsText;
     var pv2010Checkbox=deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.pv2010Checkbox;
-    var guardarDatosCheckbox = deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.guardarDatosCheckbox;
-    //$.writeln("Moooo: " + guardarDatosCheckbox);
+    var saveDataCheckbox = deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.saveDataCheckbox;
+    //$.writeln("Moooo: " + saveDataCheckbox);
     //$.writeln("Moooo: " + okButton);
     previewHistogram = null;
     
@@ -672,8 +671,8 @@ function runDeflickerMain()
     cropYText.text = cropY;
     cropWidthText.text = cropWidth;
     cropHeightText.text = cropHeight;
-    pv2010Checkbox.onClick = function() { usarPV2010 = this.value; }
-    guardarDatosCheckbox.onClick = function() { guardarDatos = this.value; }
+    pv2010Checkbox.onClick = function() { usePV2010 = this.value; }
+    saveDataCheckbox.onClick = function() { saveData = this.value; }
     iterationsText.onChange = function() { iterations = Number(this.text); };
     previewSizeText.onChange = function() { previewSize = Number(this.text); };
     cropXText.onChange = function() { cropX = Math.max(this.text, 0); };
@@ -700,7 +699,7 @@ function runDeflickerMain()
         cropWidthText.onChange();
         cropHeightText.onChange();
         pv2010Checkbox.onClick();
-        guardarDatosCheckbox.onClick();
+        saveDataCheckbox.onClick();
     }
     okButton.onClick = function() { updateAll(); deflickerDialog.close(true); };
     cancelButton.onClick = function() { deflickerDialog.close(false);};
@@ -801,10 +800,10 @@ function computePercentile(bitmap, percentile)
 function deflicker()
 {
     initializeProgress();
-    if (usarPV2010 == true) {   var exposureEnXMP = 'Exposure';  }
+    if (usePV2010 == true) {   var exposureEnXMP = 'Exposure';  }
     else { var exposureEnXMP = 'Exposure2012';   }
     
-    guardaDatosUndo(Array(exposureEnXMP), "Deflicker");
+    saveUndoData(Array(exposureEnXMP), "Deflicker");
     
     var count = app.document.selections.length;
     var moreIterationsNeeded = false;
@@ -812,8 +811,8 @@ function deflicker()
     var nextKeyframe = 0;
     app.synchronousMode = true; 
     var items = new Array(count);
-    var datosOriginales=new Array(count);
-    var datosAGuardar=new Array(count);
+    var originalData=new Array(count);
+    var dataToBeSaved=new Array(count);
     for(var i = 0; i < count; i++)
         items[i] = app.document.selections[i];
     
@@ -840,8 +839,8 @@ function deflicker()
                     //load the xmp metadata
                     var md = thumb.synchronousMetadata;
                     var xmp =  new XMPMeta(md.serialize());
-                    datosOriginales[i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP));
-                    //$.writeln("Mooooo: " + datosOriginales[i]);
+                    originalData[i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP));
+                    //$.writeln("Mooooo: " + originalData[i]);
                     }
                 }
          }
@@ -905,7 +904,7 @@ function deflicker()
                     moreIterationsNeeded = true;
                 //$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
                 xmp.setProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP, ev)
-                datosAGuardar[i]=ev;
+                dataToBeSaved[i]=ev;
                 
                 // Write the packet back to the selected file
                 var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
@@ -923,23 +922,25 @@ function deflicker()
         app.document.select(items[i]);
     }
 
-    if (guardarDatos == true) {
-        var todosLosThumbs=cogerTodosLosThumbsEnCarpeta();
-        var seqOffset=buscaSeqOffset(todosLosThumbs, items[0]);
+    if (saveData == true) {
+        var allThumbs=selectAllThumbsInFolder();
+        var seqOffset=findSeqOffset(allThumbs, items[0]);
  
         for(var i = 0; i < count; i++)
         {
             app.document.select(items[i]);
-            datosAGuardar[i] = datosAGuardar[i] - datosOriginales[i];
+            dataToBeSaved[i] = dataToBeSaved[i] - originalData[i];
             }
 
-        datosAGuardar[0]=0;
-        datosAGuardar[count - 1]=0;
+        dataToBeSaved[0]=0;
+        dataToBeSaved[count - 1]=0;
 
         var json={
             "offset": seqOffset,
-            "evValues" : datosAGuardar
+            "evValues" : dataToBeSaved
             };
+        //$.writeln("Mooooo: " + (app.document.presentationPath + "/deFlickerdata.json"));
+        //$.writeln("Datos: " + json.toSource());
         var jsonFile=new File(app.document.presentationPath + "/deFlickerdata.json");
         jsonFile.open("w");
         jsonFile.write(json.toSource());
@@ -952,17 +953,17 @@ function deflicker()
 }
 
 
-function buscaSeqOffset(todos, inicioSeleccion) {
-    var nombre=inicioSeleccion.name;
-    for (i=0; i < todos.length; i++) {
-        if (todos[i].name == nombre) { return i; }
+function findSeqOffset(allThumbs, selectionStart) {
+    var selectionStartName=selectionStart.name;
+    for (i=0; i < allThumbs.length; i++) {
+        if (allThumbs[i].name == selectionStartName) { return i; }
         }
-    //Algo muy raro ha pasado aquí... ¡¡Las fotos seleccionadas no están en la carpeta!!
+    //Something weird happened here... The selected thumb isn't in the current folder!!! This should not happen
     return false;
     }
 
 
-function cogerTodosLosThumbsEnCarpeta() {
+function selectAllThumbsInFolder() {
     
     var count = app.document.selections.length;
     var tempThumbs=Array();
@@ -971,14 +972,14 @@ function cogerTodosLosThumbsEnCarpeta() {
         }
     
     app.document.selectAll();
-    var todosLosThumbs=app.document.getSelection("cr2");
+    var allThumbs=app.document.getSelection("cr2");
     app.document.deselectAll();
     
     for (i=0; i < count; i++) {
         app.document.select(tempThumbs[i]);
         }
     
-    return todosLosThumbs;
+    return allThumbs;
     }
 
 
@@ -1031,12 +1032,12 @@ function runUndo() {
 
     if (jsonFile.exists) {
         jsonFile.open("r");
-        var todosLosDatos=eval(jsonFile.read());
+        var allData=eval(jsonFile.read());
         jsonFile.close();
         }
     else { return false; }
 
-    if (todosLosDatos.length == 0) { return false; }
+    if (allData.length == 0) { return false; }
 
     var undoDialog = new Window("dialog { orientation: 'row', text: 'Undo Ramp/Deflicker', alignChildren:'top', \
         leftGroup: Group { orientation: 'column', alignChildren:'fill', \
@@ -1054,10 +1055,10 @@ function runUndo() {
     var cancelButton = undoDialog.rightGroup.cancelButton;
     var propertyBox = undoDialog.leftGroup.undoPanel.propertyBox;
 
-    var count=todosLosDatos.length;
+    var count=allData.length;
     
     for (i=0; i < count; i++) {
-        var item=todosLosDatos[i];
+        var item=allData[i];
         propertyBox.add("Item", "Undo " + item["descripcion"]);
         
         }
@@ -1075,29 +1076,30 @@ function runUndo() {
 
 
 
-function guardaDatosUndo(propiedadesACambiar, accion) {
-    //"propiedades" es un array de las propiedades que vamos a modificar. Con propósitos únicamente informativos
+function saveUndoData(propertiesToBeChanged, action) {
+    //Actually we don't used "propertiesToBeChanged" anymore, since we save all the data in the XMPs.
+    //Right now, we only use it to generate the descriptive text for each undo set.
     
-    var todosLosThumbs=cogerTodosLosThumbsEnCarpeta();
-    var seqOffset=buscaSeqOffset(todosLosThumbs, app.document.selections[0]);
+    var allThumbs=selectAllThumbsInFolder();
+    var seqOffset=findSeqOffset(allThumbs, app.document.selections[0]);
 
     var allProperties = commonProperties.concat(Properties2010, Properties2012);
     var numAllProperties=allProperties.length;
     
-    var numPropiedadesACambiar=propiedadesACambiar.length;
-    if (numPropiedadesACambiar > 3) {
-        numPropiedadesACambiar = 4;
-        propiedadesACambiar[3] = "etc.";
+    var numPropertiesToBeChanged=propertiesToBeChanged.length;
+    if (numPropertiesToBeChanged > 3) {
+        numPropertiesToBeChanged = 4;
+        propertiesToBeChanged[3] = "etc.";
         }
     
     var count = app.document.selections.length;
     var undoObject={
         "offset": seqOffset,
-        "descripcion": accion + " ("
+        "descripcion": action + " ("
         }
 
-    for (i=0; i < numPropiedadesACambiar; i++) {
-        undoObject["descripcion"] += (propiedadesACambiar[i] + " ");
+    for (i=0; i < numPropertiesToBeChanged; i++) {
+        undoObject["descripcion"] += (propertiesToBeChanged[i] + " ");
         }
     undoObject["descripcion"] += ")";
 
@@ -1116,33 +1118,35 @@ function guardaDatosUndo(propiedadesACambiar, accion) {
             xmp =  new XMPMeta(md.serialize());
             for (j=0; j < numAllProperties; j++) {
                 var p = allProperties[j];
+                //$.writeln("MOOOOOO: " + p);
                 undoObject[p][i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, allProperties[j]));
                 }
+            //$.writeln("Meeeept: " + datos[j]);
             }
         }
 
-    guardaADiscoUndo(undoObject);
+    saveToDiskUndo(undoObject);
     }
 
 
-function guardaADiscoUndo(objeto) {
+function saveToDiskUndo(objeto) {
     var jsonFile=new File(app.document.presentationPath + "/undoData.json");
     if (jsonFile.exists) {
         jsonFile.open("r");
-        var todosLosDatos=eval(jsonFile.read());
+        var allData=eval(jsonFile.read());
         jsonFile.close();
         }
     else {
-        var todosLosDatos=Array();
+        var allData=Array();
         }
     
-    todosLosDatos.push(objeto);
-    if (todosLosDatos.length > undoNiveles) {
-        todosLosDatos.shift();
+    allData.push(objeto);
+    if (allData.length > undoLevels) {
+        allData.shift();
         }
 
     jsonFile.open("w");
-    jsonFile.write(todosLosDatos.toSource());
+    jsonFile.write(allData.toSource());
     jsonFile.close();
     }
 
@@ -1151,24 +1155,24 @@ function Undo(num) {
     var jsonFile=new File(app.document.presentationPath + "/undoData.json");
     if (jsonFile.exists) {
         jsonFile.open("r");
-        var todosLosDatos=eval(jsonFile.read());
+        var allData=eval(jsonFile.read());
         jsonFile.close();
         }
     else { return false; }
     
-    var datosARestaurar=todosLosDatos[num];
-    var offset=datosARestaurar["offset"];
+    var dataToBeRestored=allData[num];
+    var offset=dataToBeRestored["offset"];
     
-    var todosLosThumbs=cogerTodosLosThumbsEnCarpeta();
-    var count=todosLosThumbs.length;
+    var allThumbs=selectAllThumbsInFolder();
+    var count=allThumbs.length;
 
-    //Dejamos en el objeto sólo los parámetros a restaurar
-    delete datosARestaurar["offset"];
-    delete datosARestaurar["descripcion"];
+    //We leave in this object only the data to be restored, which will make it easier to loop through it later
+    delete dataToBeRestored["offset"];
+    delete dataToBeRestored["descripcion"];
 
     for (i = offset; i < count; i++) {
         
-        var thumb=todosLosThumbs[i];
+        var thumb=allThumbs[i];
         
          var xmp =  new XMPMeta();
             if(thumb.hasMetadata)
@@ -1178,9 +1182,9 @@ function Undo(num) {
                 xmp =  new XMPMeta(md.serialize());
             }
             
-            for (var parametro in datosARestaurar) {
-                var value=datosARestaurar[parametro][i - offset];
-                xmp.setProperty(XMPConst.NS_CAMERA_RAW, parametro, value);
+            for (var parameter in dataToBeRestored) {
+                var value=dataToBeRestored[parameter][i - offset];
+                xmp.setProperty(XMPConst.NS_CAMERA_RAW, parameter, value);
                }
             
             // Write the packet back to the selected file
@@ -1192,21 +1196,22 @@ function Undo(num) {
 
     for (var i = offset; i < count; i++)
             {
-                app.purgeFolderCache(todosLosThumbs[i]);
-                app.document.select(todosLosThumbs[i]);
+                app.purgeFolderCache(allThumbs[i]);
+                app.document.select(allThumbs[i]);
             }
 
 
-    //Borrar los Undos ya usados
-    var nuevosDatos=Array();
-    var numDatosActuales=todosLosDatos.length;
+    //Deletes already used undo data
+    var newData=Array();
+    var numCurrentData=allData.length;
 
+    //Not a bug!!! We only loop until num, which is the current undo level.
     for (i=0; i < num; i++) {
-        nuevosDatos[i]=todosLosDatos[i];
+        newData[i]=allData[i];
         }
 
     jsonFile.open("w");
-    jsonFile.write(nuevosDatos.toSource());
+    jsonFile.write(newData.toSource());
     jsonFile.close();
     }
 

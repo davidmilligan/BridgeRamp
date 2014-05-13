@@ -228,7 +228,7 @@ function runRamp()
                 }, \
                 checkboxesGroup: Group{ orientation: 'row', \
                     additiveCheckBox: Checkbox { text: 'Additive' }, \
-                    pv2010CheckBox: Checkbox { text: 'Usar PV2010' } \
+                    pv2010CheckBox: Checkbox { text: 'Use PV2010' } \
                 }, \
                 selectionLabel: StaticText { text: 'Selected Items: ' }, \
             } \

@@ -2,6 +2,8 @@
 
 /* Copyright (C) 2013 David Milligan
  *
+ * With additions (C) 2014 by Paulo Jan
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 3
@@ -28,6 +30,10 @@ var undoLevels = 5;
 var saveData = false;
 var rampGradientCorrections = true;
 var rampRadialCorrections = true;
+
+function debugPrint(str)
+{
+}
 
 function BrRamp()
 {
@@ -260,7 +266,7 @@ function runRamp()
         else {
             allProperties = Properties2012.concat(commonProperties);
             }
-        //$.writeln("Meeeept: " + allProperties.length);
+        debugPrint("Meeeept: " + allProperties.length);
         fillProperties(propertyBox, allProperties);
         propertyBox.selection = 2;
         }
@@ -276,7 +282,7 @@ function runRamp()
     
     if(rampDialog.show())
     {
-        //$.writeln("MOOOOOO: " + propertyBox.selection.text);
+        debugPrint("MOOOOOO: " + propertyBox.selection.text);
         applyRamp(
             propertyBox.selection.text, 
             Number(startText.text), 
@@ -327,7 +333,7 @@ function applyRamp(property, startValue, endValue, additive)
             if(additive)
             {
                 offset = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, property));
-                //$.writeln(thumb.name + " offset: " + offset);
+                debugPrint(thumb.name + " offset: " + offset);
             }
         }
         var value = (i / (count - 1)) * (endValue - startValue) + startValue + offset;
@@ -336,7 +342,7 @@ function applyRamp(property, startValue, endValue, additive)
         // Write the packet back to the selected file
         var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
 
-        // $.writeln(updatedPacket);
+        // debugPrint(updatedPacket);
         thumb.metadata = new Metadata(updatedPacket);
     }
 }
@@ -560,7 +566,7 @@ function rampMultiple(enabledSettings)
             // Write the packet back to the selected file
             var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
     
-            // $.writeln(updatedPacket);
+            // debugPrint(updatedPacket);
             thumb.metadata = new Metadata(updatedPacket);
         }
     }
@@ -658,8 +664,8 @@ function runDeflickerMain()
     var iterationsText = deflickerDialog.leftGroup.deflickerPanel.iterationsGroup.iterationsText;
     var pv2010Checkbox=deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.pv2010Checkbox;
     var saveDataCheckbox = deflickerDialog.leftGroup.deflickerPanel.checkboxesGroup.saveDataCheckbox;
-    //$.writeln("Moooo: " + saveDataCheckbox);
-    //$.writeln("Moooo: " + okButton);
+    //debugPrint("Moooo: " + saveDataCheckbox);
+    //debugPrint("Moooo: " + okButton);
     previewHistogram = null;
     
     deflickerDialog.leftGroup.deflickerPanel.selectionLabel.text = "Selected Items: " + app.document.selections.length;
@@ -751,7 +757,7 @@ function showPercentilePreview()
     }
     var tempFilename = Folder.temp + "/PercentilePreview.jpg";
     var tempFile = File(tempFilename);
-    //$.writeln("temp file path: " + tempFile.fsName);
+    debugPrint("temp file path: " + tempFile.fsName);
     if(tempFile.exists)
     {
         tempFile.remove();
@@ -819,7 +825,7 @@ function deflicker()
     for(var iteration = 0; iteration < iterations; iteration++)
     {
         initializeProgress("Deflicker Progress" + (iterations > 1 ? " (Iteration " + (iteration + 1) + ")" : ""));
-        //$.writeln("\n*** Iteration " + (iteration + 1) + " ***");
+        debugPrint("\n*** Iteration " + (iteration + 1) + " ***");
         //get target values from the first image
         if(iteration > 0)
         {
@@ -840,7 +846,7 @@ function deflicker()
                     var md = thumb.synchronousMetadata;
                     var xmp =  new XMPMeta(md.serialize());
                     originalData[i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP));
-                    //$.writeln("Mooooo: " + originalData[i]);
+                    //debugPrint("Mooooo: " + originalData[i]);
                     }
                 }
          }
@@ -852,7 +858,7 @@ function deflicker()
         var bitmap = thumb.core.preview.preview.resize(previewSize);
         var targetStart = computePercentile(bitmap, percentile);
         var targetEnd = targetStart;
-        //$.writeln("keyframe " + thumb.name + ": " + targetStart);
+        debugPrint("keyframe " + thumb.name + ": " + targetStart);
         var findNextKeyframe = function(index)
         {
             nextKeyframe = index + 1;
@@ -867,7 +873,7 @@ function deflicker()
             statusText.text = "Processing " + thumb.name + " (keyframe)";
             var bitmap = thumb.core.preview.preview.resize(previewSize);
             var result = computePercentile(bitmap, percentile);
-            //$.writeln("keyframe " + thumb.name + ": " + result);
+            debugPrint("keyframe " + thumb.name + ": " + result);
             return result;
         }
         targetEnd = findNextKeyframe(0);
@@ -902,14 +908,14 @@ function deflicker()
                 var ev = convertToEV(target) - convertToEV(computed) + offset;
                 if(Math.abs(target - computed) > deflickerThreshold)
                     moreIterationsNeeded = true;
-                //$.writeln(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
+                debugPrint(thumb.name + ": " + ev + "ev (" + target + " - " + computed + ")");
                 xmp.setProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP, ev)
                 dataToBeSaved[i]=ev;
                 
                 // Write the packet back to the selected file
                 var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
         
-                // $.writeln(updatedPacket);
+                // debugPrint(updatedPacket);
                 thumb.metadata = new Metadata(updatedPacket);
             }
         }
@@ -939,8 +945,8 @@ function deflicker()
             "offset": seqOffset,
             "evValues" : dataToBeSaved
             };
-        //$.writeln("Mooooo: " + (app.document.presentationPath + "/deFlickerdata.json"));
-        //$.writeln("Datos: " + json.toSource());
+        //debugPrint("Mooooo: " + (app.document.presentationPath + "/deFlickerdata.json"));
+        //debugPrint("Datos: " + json.toSource());
         var jsonFile=new File(app.document.presentationPath + "/deFlickerdata.json");
         jsonFile.open("w");
         jsonFile.write(json.toSource());
@@ -1069,7 +1075,7 @@ function runUndo() {
     
     if(undoDialog.show())
     {
-        //$.writeln("MOOOOOO: " + propertyBox.selection.text);
+        //debugPrint("MOOOOOO: " + propertyBox.selection.text);
         Undo(Number(propertyBox.selection));
         }
     }
@@ -1118,10 +1124,10 @@ function saveUndoData(propertiesToBeChanged, action) {
             xmp =  new XMPMeta(md.serialize());
             for (j=0; j < numAllProperties; j++) {
                 var p = allProperties[j];
-                //$.writeln("MOOOOOO: " + p);
+                //debugPrint("MOOOOOO: " + p);
                 undoObject[p][i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, allProperties[j]));
                 }
-            //$.writeln("Meeeept: " + datos[j]);
+            //debugPrint("Meeeept: " + datos[j]);
             }
         }
 
@@ -1190,7 +1196,7 @@ function Undo(num) {
             // Write the packet back to the selected file
             var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
 
-            // $.writeln(updatedPacket);
+            // debugPrint(updatedPacket);
             thumb.metadata = new Metadata(updatedPacket);
         }
 

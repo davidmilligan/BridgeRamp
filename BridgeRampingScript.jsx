@@ -119,27 +119,27 @@ BrRamp.prototype.run = function()
     };
     backupCommand.onSelect = function(m)
     {
-    	try
-    	{
-    		runBackupXMP();
-    	}
+        try
+        {
+            runBackupXMP();
+        }
         catch(error)
         {
             alert(error);
         }
     };
 
-    undoCommand.onSelect = function(m) {
+    undoCommand.onSelect = function(m)
+    {
         try
-            {
-                runUndo();
-            }
-            catch(error)
-            {
-                alert(error);
-            }        
-        
+        {
+            runUndo();
         }
+        catch(error)
+        {
+            alert(error);
+        }   
+    };
 
     var onDisplay = function()
     {
@@ -258,18 +258,20 @@ function runRamp()
 
 
     pv2010CheckBox.onClick=function ()
-        {
+    {
         propertyBox.removeAll();
-        if (pv2010CheckBox.value == true) {
+        if (pv2010CheckBox.value == true) 
+        {
             allProperties = Properties2010.concat(commonProperties);
-            }
-        else {
+        }
+        else 
+        {
             allProperties = Properties2012.concat(commonProperties);
-            }
-        debugPrint("Meeeept: " + allProperties.length);
+        }
+        //debugPrint("Meeeept: " + allProperties.length);
         fillProperties(propertyBox, allProperties);
         propertyBox.selection = 2;
-        }
+    }
 
     okButton.onClick = function() { rampDialog.close(true); };
     cancelButton.onClick = function() { rampDialog.close(false);};
@@ -282,7 +284,7 @@ function runRamp()
     
     if(rampDialog.show())
     {
-        debugPrint("MOOOOOO: " + propertyBox.selection.text);
+        //debugPrint("MOOOOOO: " + propertyBox.selection.text);
         applyRamp(
             propertyBox.selection.text, 
             Number(startText.text), 
@@ -292,12 +294,13 @@ function runRamp()
 }
 
 function fillProperties(dropDownToBeFilled, list)
-    {
-     for(var i = 0; i < list.length; i++) {
-        dropDownToBeFilled.add("Item", list[i]);
-        }
+{
+     for(var i = 0; i < list.length; i++)
+     {
+         dropDownToBeFilled.add("Item", list[i]);
+     }
     //return true;
-    }
+}
 
 function getProperty(property, index)
 {
@@ -498,27 +501,27 @@ function rampMultiple(enabledSettings)
             xmp =  new XMPMeta(md.serialize());
             var getCorrectionSettings = function(tag, maskProperties)
             {
-            	correctionsCount = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, tag);
-				for(var j = 1; j<= correctionsCount; j++)
-				{
-					for(var i = 0; i < correctionsProperties.length; i++)
-					{
-						settings.push(tag + "[" + j + "]/" + correctionsProperties[i]);
-					}
-					masksCount.push(xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, tag + "[" + j + "]/" + correctionMasksTag));
-					for(var k = 1; k<= masksCount[j-1]; k++)
-					{
-						for(var i = 0; i < maskProperties.length; i++)
-						{
-							settings.push(tag + "[" + j + "]/" + correctionMasksTag + "[" + k + "]/" + maskProperties[i]);
-						}
-					}
-				}
+                correctionsCount = xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, tag);
+                for(var j = 1; j<= correctionsCount; j++)
+                {
+                    for(var i = 0; i < correctionsProperties.length; i++)
+                    {
+                        settings.push(tag + "[" + j + "]/" + correctionsProperties[i]);
+                    }
+                    masksCount.push(xmp.countArrayItems(XMPConst.NS_CAMERA_RAW, tag + "[" + j + "]/" + correctionMasksTag));
+                    for(var k = 1; k<= masksCount[j-1]; k++)
+                    {
+                        for(var i = 0; i < maskProperties.length; i++)
+                        {
+                            settings.push(tag + "[" + j + "]/" + correctionMasksTag + "[" + k + "]/" + maskProperties[i]);
+                        }
+                    }
+                }
             };
             if(rampGradientCorrections)
-            	getCorrectionSettings(gradientCorrectionsTag, gradientMasksProperties);
+                getCorrectionSettings(gradientCorrectionsTag, gradientMasksProperties);
             if(rampRadialCorrections)
-            	getCorrectionSettings(radialCorrectionsTag, radialMasksProperties);
+                getCorrectionSettings(radialCorrectionsTag, radialMasksProperties);
         }
     }
     
@@ -836,8 +839,10 @@ function deflicker()
                 app.document.select(items[i]);
             }
         }
-        else {
-            for (var i=0; i < count; i++) {
+        else
+        {
+            for (var i=0; i < count; i++)
+            {
                 var xmp = new XMPMeta();
                 var thumb = items[i];
                 if(thumb.hasMetadata)
@@ -847,9 +852,9 @@ function deflicker()
                     var xmp =  new XMPMeta(md.serialize());
                     originalData[i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, exposureEnXMP));
                     //debugPrint("Mooooo: " + originalData[i]);
-                    }
                 }
-         }
+            }
+        }
         currentKeyframe = 0;
         nextKeyframe = 0;
         var thumb = items[0];
@@ -928,7 +933,8 @@ function deflicker()
         app.document.select(items[i]);
     }
 
-    if (saveData == true) {
+    if (saveData == true)
+    {
         var allThumbs=selectAllThumbsInFolder();
         var seqOffset=findSeqOffset(allThumbs, items[0]);
  
@@ -936,22 +942,22 @@ function deflicker()
         {
             app.document.select(items[i]);
             dataToBeSaved[i] = dataToBeSaved[i] - originalData[i];
-            }
+        }
 
         dataToBeSaved[0]=0;
         dataToBeSaved[count - 1]=0;
 
-        var json={
+        var json = {
             "offset": seqOffset,
             "evValues" : dataToBeSaved
-            };
+        };
         //debugPrint("Mooooo: " + (app.document.presentationPath + "/deFlickerdata.json"));
         //debugPrint("Datos: " + json.toSource());
         var jsonFile=new File(app.document.presentationPath + "/deFlickerdata.json");
         jsonFile.open("w");
         jsonFile.write(json.toSource());
         jsonFile.close();
-        }
+    }
   
     if(moreIterationsNeeded)
         alert("More Deflicker Iterations may be needed");
@@ -959,34 +965,38 @@ function deflicker()
 }
 
 
-function findSeqOffset(allThumbs, selectionStart) {
+function findSeqOffset(allThumbs, selectionStart)
+{
     var selectionStartName=selectionStart.name;
-    for (i=0; i < allThumbs.length; i++) {
+    for (i=0; i < allThumbs.length; i++) 
+    {
         if (allThumbs[i].name == selectionStartName) { return i; }
-        }
+    }
     //Something weird happened here... The selected thumb isn't in the current folder!!! This should not happen
     return false;
-    }
+}
 
 
-function selectAllThumbsInFolder() {
-    
+function selectAllThumbsInFolder() 
+{   
     var count = app.document.selections.length;
     var tempThumbs=Array();
-    for (i=0; i < count; i++) {
+    for (i=0; i < count; i++) 
+    {
         tempThumbs[i]=app.document.selections[i];
-        }
+    }
     
     app.document.selectAll();
     var allThumbs=app.document.getSelection("cr2");
     app.document.deselectAll();
     
-    for (i=0; i < count; i++) {
+    for (i=0; i < count; i++)
+    {
         app.document.select(tempThumbs[i]);
-        }
+    }
     
     return allThumbs;
-    }
+}
 
 
 function initializeProgress(title)
@@ -1007,28 +1017,28 @@ function initializeProgress(title)
 
 function runBackupXMP()
 {
-	var backupLocation = Folder.selectDialog ("Select a destination folder for the backup");
-	if(backupLocation != null)
-	{
-		var count = app.document.selections.length;
-		for(var i = 0; i < count; i++)
-		{
-			var thumb = app.document.selections[i];
-			var sourceXMP = File(thumb.spec.fullName.substr(0, thumb.spec.fullName.lastIndexOf(".")) + ".XMP");
-			if(!sourceXMP.exists)
-				sourceXMP = File(thumb.spec.fullName.substr(0, thumb.spec.fullName.lastIndexOf(".")) + ".xmp");
-			if(sourceXMP.exists)
-			{
-				var destination = File(backupLocation.fullName + "/" + sourceXMP.name);
-				if(destination.exists)
-				{
-					alert("Error: file(s) already exist in this destination");
-					break;
-				}
-				sourceXMP.copy(destination);
-			}
-		}
-	}
+    var backupLocation = Folder.selectDialog ("Select a destination folder for the backup");
+    if(backupLocation != null)
+    {
+        var count = app.document.selections.length;
+        for(var i = 0; i < count; i++)
+        {
+            var thumb = app.document.selections[i];
+            var sourceXMP = File(thumb.spec.fullName.substr(0, thumb.spec.fullName.lastIndexOf(".")) + ".XMP");
+            if(!sourceXMP.exists)
+                sourceXMP = File(thumb.spec.fullName.substr(0, thumb.spec.fullName.lastIndexOf(".")) + ".xmp");
+            if(sourceXMP.exists)
+            {
+                var destination = File(backupLocation.fullName + "/" + sourceXMP.name);
+                if(destination.exists)
+                {
+                    alert("Error: file(s) already exist in this destination");
+                    break;
+                }
+                sourceXMP.copy(destination);
+            }
+        }
+    }
 }
 
 
@@ -1036,11 +1046,12 @@ function runUndo() {
 
     var jsonFile=new File(app.document.presentationPath + "/undoData.json");
 
-    if (jsonFile.exists) {
+    if (jsonFile.exists) 
+    {
         jsonFile.open("r");
         var allData=eval(jsonFile.read());
         jsonFile.close();
-        }
+    }
     else { return false; }
 
     if (allData.length == 0) { return false; }
@@ -1063,11 +1074,11 @@ function runUndo() {
 
     var count=allData.length;
     
-    for (i=0; i < count; i++) {
+    for (i=0; i < count; i++) 
+    {
         var item=allData[i];
         propertyBox.add("Item", "Undo " + item["descripcion"]);
-        
-        }
+    }
     propertyBox.selection = count - 1;
 
     okButton.onClick = function() { undoDialog.close(true); };
@@ -1077,8 +1088,8 @@ function runUndo() {
     {
         //debugPrint("MOOOOOO: " + propertyBox.selection.text);
         Undo(Number(propertyBox.selection));
-        }
     }
+}
 
 
 
@@ -1093,77 +1104,88 @@ function saveUndoData(propertiesToBeChanged, action) {
     var numAllProperties=allProperties.length;
     
     var numPropertiesToBeChanged=propertiesToBeChanged.length;
-    if (numPropertiesToBeChanged > 3) {
+    if (numPropertiesToBeChanged > 3) 
+    {
         numPropertiesToBeChanged = 4;
         propertiesToBeChanged[3] = "etc.";
-        }
+    }
     
     var count = app.document.selections.length;
     var undoObject={
         "offset": seqOffset,
         "descripcion": action + " ("
-        }
+    }
 
-    for (i=0; i < numPropertiesToBeChanged; i++) {
+    for (i=0; i < numPropertiesToBeChanged; i++) 
+    {
         undoObject["descripcion"] += (propertiesToBeChanged[i] + " ");
-        }
+    }
     undoObject["descripcion"] += ")";
 
-    for (i=0; i < numAllProperties; i++) {
+    for (i=0; i < numAllProperties; i++) 
+    {
         undoObject[allProperties[i]] = Array();
-        }
+    }
 
-    for (i=0; i < count; i++) {
+    for (i=0; i < count; i++) 
+    {
         var thumb=app.document.selections[i];
 
         var xmp =  new XMPMeta();
         if(thumb.hasMetadata)
-           {
+        {
              //load the xmp metadata
             var md = thumb.synchronousMetadata;
             xmp =  new XMPMeta(md.serialize());
-            for (j=0; j < numAllProperties; j++) {
+            for (j=0; j < numAllProperties; j++) 
+            {
                 var p = allProperties[j];
                 //debugPrint("MOOOOOO: " + p);
                 undoObject[p][i] = Number(xmp.getProperty(XMPConst.NS_CAMERA_RAW, allProperties[j]));
-                }
-            //debugPrint("Meeeept: " + datos[j]);
             }
+            //debugPrint("Meeeept: " + datos[j]);
         }
-
-    saveToDiskUndo(undoObject);
     }
 
+    saveToDiskUndo(undoObject);
+}
 
-function saveToDiskUndo(objeto) {
+
+function saveToDiskUndo(objeto)
+{
     var jsonFile=new File(app.document.presentationPath + "/undoData.json");
-    if (jsonFile.exists) {
+    if (jsonFile.exists) 
+    {
         jsonFile.open("r");
         var allData=eval(jsonFile.read());
         jsonFile.close();
-        }
-    else {
+    }
+    else 
+    {
         var allData=Array();
-        }
+    }
     
     allData.push(objeto);
-    if (allData.length > undoLevels) {
+    if (allData.length > undoLevels) 
+    {
         allData.shift();
-        }
+    }
 
     jsonFile.open("w");
     jsonFile.write(allData.toSource());
     jsonFile.close();
-    }
+}
 
 
-function Undo(num) {
+function Undo(num)
+{
     var jsonFile=new File(app.document.presentationPath + "/undoData.json");
-    if (jsonFile.exists) {
+    if (jsonFile.exists) 
+    {
         jsonFile.open("r");
         var allData=eval(jsonFile.read());
         jsonFile.close();
-        }
+    }
     else { return false; }
     
     var dataToBeRestored=allData[num];
@@ -1176,35 +1198,35 @@ function Undo(num) {
     delete dataToBeRestored["offset"];
     delete dataToBeRestored["descripcion"];
 
-    for (i = offset; i < count; i++) {
-        
+    for (i = offset; i < count; i++) 
+    {   
         var thumb=allThumbs[i];
-        
-         var xmp =  new XMPMeta();
-            if(thumb.hasMetadata)
-            {
-                //load the xmp metadata
-                var md = thumb.synchronousMetadata;
-                xmp =  new XMPMeta(md.serialize());
-            }
-            
-            for (var parameter in dataToBeRestored) {
-                var value=dataToBeRestored[parameter][i - offset];
-                xmp.setProperty(XMPConst.NS_CAMERA_RAW, parameter, value);
-               }
-            
-            // Write the packet back to the selected file
-            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
-
-            // debugPrint(updatedPacket);
-            thumb.metadata = new Metadata(updatedPacket);
+        var xmp =   new XMPMeta();
+        if(thumb.hasMetadata)
+        {
+            //load the xmp metadata
+            var md = thumb.synchronousMetadata;
+            xmp =  new XMPMeta(md.serialize());
         }
+        
+        for (var parameter in dataToBeRestored) 
+        {
+            var value=dataToBeRestored[parameter][i - offset];
+            xmp.setProperty(XMPConst.NS_CAMERA_RAW, parameter, value);
+        }
+        
+        // Write the packet back to the selected file
+        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+    
+        // debugPrint(updatedPacket);
+        thumb.metadata = new Metadata(updatedPacket);
+    }
 
     for (var i = offset; i < count; i++)
-            {
-                app.purgeFolderCache(allThumbs[i]);
-                app.document.select(allThumbs[i]);
-            }
+    {
+        app.purgeFolderCache(allThumbs[i]);
+        app.document.select(allThumbs[i]);
+    }
 
 
     //Deletes already used undo data
@@ -1212,14 +1234,15 @@ function Undo(num) {
     var numCurrentData=allData.length;
 
     //Not a bug!!! We only loop until num, which is the current undo level.
-    for (i=0; i < num; i++) {
+    for (i=0; i < num; i++) 
+    {
         newData[i]=allData[i];
-        }
+    }
 
     jsonFile.open("w");
     jsonFile.write(newData.toSource());
     jsonFile.close();
-    }
+}
 
 
 new BrRamp().run();

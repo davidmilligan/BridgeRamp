@@ -343,7 +343,7 @@ function applyRamp(property, startValue, endValue, additive)
         xmp.setProperty(XMPConst.NS_CAMERA_RAW, property, value);
         
         // Write the packet back to the selected file
-        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
 
         // debugPrint(updatedPacket);
         thumb.metadata = new Metadata(updatedPacket);
@@ -567,7 +567,7 @@ function rampMultiple(enabledSettings)
             }
             
             // Write the packet back to the selected file
-            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+            var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
     
             // debugPrint(updatedPacket);
             thumb.metadata = new Metadata(updatedPacket);
@@ -1237,7 +1237,7 @@ function Undo(num)
         }
         
         // Write the packet back to the selected file
-        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_OMIT_PACKET_WRAPPER | XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
+        var updatedPacket = xmp.serialize(XMPConst.SERIALIZE_USE_COMPACT_FORMAT);
     
         // debugPrint(updatedPacket);
         thumb.metadata = new Metadata(updatedPacket);

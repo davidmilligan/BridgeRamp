@@ -728,7 +728,7 @@ function showPercentilePreview()
 {
     //get target values from the first image
     var thumb = app.document.selections[0];
-    var bitmap = thumb.core.preview.preview.resize(previewSize);
+    var bitmap = getPreview(thumb, previewSize);;
     var level = computePercentile(bitmap, percentile);
     var output = bitmap.clone();
     var xmin = Math.round(Math.max(cropX * output.width / 100, 0));
@@ -806,6 +806,27 @@ function computePercentile(bitmap, percentile)
     return 255;
 }
 
+function getPreview(thumb, size)
+{
+	if(thumb.core.preview.preview == null)
+	{
+		debugPrint("\npreview not ready, waiting...");
+		var timeout = 30;//30 seconds
+		while(thumb.core.preview.preview == null)
+		{
+			$.sleep(1000);
+			timeout--;
+			if(timeout < 0)
+				break;
+		}
+	}
+	
+	if(thumb.core.preview.preview != null)
+		return thumb.core.preview.preview.resize(size);
+	else
+		throw "Error: preview data not available for thumbnail";
+}
+
 function deflicker()
 {
     initializeProgress();
@@ -860,7 +881,7 @@ function deflicker()
         var thumb = items[0];
         progress.value = 100 * 1 / (count + 1);
         statusText.text = "Processing " + thumb.name + " (keyframe)";
-        var bitmap = thumb.core.preview.preview.resize(previewSize);
+        var bitmap = getPreview(thumb, previewSize);
         var targetStart = computePercentile(bitmap, percentile);
         var targetEnd = targetStart;
         debugPrint("keyframe " + thumb.name + ": " + targetStart);
@@ -876,7 +897,7 @@ function deflicker()
             var thumb = items[nextKeyframe];
             progress.value = 100 * (index + 2) / (count + 1);
             statusText.text = "Processing " + thumb.name + " (keyframe)";
-            var bitmap = thumb.core.preview.preview.resize(previewSize);
+            var bitmap = getPreview(thumb, previewSize);
             var result = computePercentile(bitmap, percentile);
             debugPrint("keyframe " + thumb.name + ": " + result);
             return result;
@@ -897,7 +918,7 @@ function deflicker()
             {
                 progress.value = 100 * (i + 2) / (count + 1);
                 statusText.text = "Processing " + thumb.name;
-                bitmap = thumb.core.preview.preview.resize(previewSize);
+                bitmap = getPreview(thumb, previewSize);
                 computed = computePercentile(bitmap, percentile);
                 
                 var xmp = new XMPMeta();

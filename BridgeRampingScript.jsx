@@ -194,6 +194,8 @@ var commonProperties = [
     "SplitToningShadowHue", "SplitToningShadowSaturation", "SplitToningHighlightHue", "SplitToningHighlightSaturation", "SplitToningBalance",
     "ParametricShadows", "ParametricDarks", "ParametricLights", "ParametricHighlights", "ParametricShadowSplit", "ParametricMidtoneSplit", "ParametricHighlightSplit"];
 
+var nonRawProperties = ["IncrementalTemperature", "IncrementalTint"];
+    
 var Properties2012 = ["Exposure2012", "Contrast2012", "Highlights2012", "Shadows2012", "Whites2012", "Blacks2012",
     "Clarity2012"];
    
@@ -377,7 +379,8 @@ function runRampMultiple()
         } \
     } ");
     
-    var allProperties = Properties2012.concat(commonProperties);
+    var rawProperties = Properties2012.concat(commonProperties);
+    var allProperties = rawProperties.concat(nonRawProperties);
 
     var gbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.gbcCheckbox;
     var rbcCheckbox = rampDialog.leftGroup.settingsPanel.group1.rbcCheckbox;
@@ -391,9 +394,9 @@ function runRampMultiple()
     if(enabledSettings == null)
     {
         enabledSettings = new Array();
-        for(var i = 0; i < allProperties.length; i++)
+        for(var i = 0; i < rawProperties.length; i++)
         {
-            enabledSettings.push(allProperties[i]);
+            enabledSettings.push(rawProperties[i]);
         }
     }
     gbcCheckbox.value = rampGradientCorrections;
